@@ -2,7 +2,7 @@
 
 为 macOS 打造的原生剪贴板管理软件。基于 SwiftData 和 SwiftUI 构建，纯本地运行。
 
-Read in English: [Click here]()
+简体中文 | <a href="./README_en.md">English</a>
 
 ## 核心特性
 
