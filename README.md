@@ -14,9 +14,16 @@
 - 本地运行，无任何数据上传
 - 功能不多，但大多数都可以自定义
 
-## 下载
+## 下载与安装
 
-见 [Release](https://github.com/WkJ01N/ClipboardX/releases) 页面
+下载见 [Release](https://github.com/WkJ01N/ClipboardX/releases) 页面
+由于主播贫困潦倒，买不起开发者账号，所以需要打开允许任何来源软件才能使用
+1. 打开设置，找到“*隐私与安全性*”，翻到最底部，将“*允许以下来源的应用程序*”一项改为“***任何来源***”
+2. 若你没有该选项，请打开**终端**，输入以下代码：
+
+   ```Terminal
+   sudo spctl --master-disable
+按照提示输入密码之后再次打开设置就可以看到“任何来源”选项了
 
 ## 快捷键指南
 
