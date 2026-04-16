@@ -16,6 +16,9 @@ import SwiftUI
 /// 将“面板生命周期”从 SwiftUI 视图层中剥离，避免界面逻辑与窗口控制逻辑耦合。
 @MainActor
 final class PanelManager {
+    @AppStorage("windowFadeAnimationEnabled") private var windowFadeAnimationEnabled = true
+    @AppStorage("windowAnimationDurationMs") private var windowAnimationDurationMs = 220
+
     /// 主悬浮窗口实例（边框隐藏、高层级、支持全屏辅助显示）。
     private let panel: NSPanel
     /// 监听其他应用/桌面的鼠标点击，用于点击外部自动收起。
@@ -24,9 +27,15 @@ final class PanelManager {
     private var outsideClickLocalMonitor: Any?
     /// 响应统一的隐藏通知，支持跨组件关闭面板。
     private var hidePanelNotificationObserver: NSObjectProtocol?
+    /// 用于避免 show/hide 快速切换时旧动画 completion 污染新状态。
+    private var animationGeneration: UInt = 0
 
     /// 悬浮面板内容区固定尺寸，与历史列表布局一致。
     private static let contentSize = NSSize(width: 320, height: 450)
+
+    private var normalizedWindowAnimationDuration: TimeInterval {
+        Double(max(100, min(600, windowAnimationDurationMs))) / 1000.0
+    }
 
     /// 初始化面板管理器并绑定全局快捷键、通知监听与内容控制器。
     init(modelContainer: ModelContainer) {
@@ -83,18 +92,62 @@ final class PanelManager {
 
     /// 显示面板并将其定位到鼠标附近，同时建立外部点击监测。
     func showPanel() {
-        positionPanelTopLeftAtMouse()
+        let targetOrigin = resolvedPanelOrigin()
         stopOutsideClickMonitoring()
         beginOutsideClickMonitoring()
-        NSApp.activate(ignoringOtherApps: true)
+
+        animationGeneration &+= 1
+        let generation = animationGeneration
+        let shouldAnimate = windowFadeAnimationEnabled
+        let duration = normalizedWindowAnimationDuration
+        panel.alphaValue = shouldAnimate ? 0 : 1
+        panel.setFrameOrigin(targetOrigin)
+
+        NSRunningApplication.current.activate(options: [])
+        panel.orderFrontRegardless()
+        panel.makeMain()
         panel.makeKeyAndOrderFront(nil)
-        NotificationCenter.default.post(name: .focusClipboardSearchNotification, object: nil)
+
+        if shouldAnimate {
+            Task { @MainActor [weak self] in
+                guard let self, self.animationGeneration == generation, self.panel.isVisible else { return }
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = duration
+                    self.panel.animator().alphaValue = 1.0
+                }
+            }
+        }
+
+        // 等窗口进入 key 状态后再广播焦点请求，提升上下键接管成功率。
+        DispatchQueue.main.asyncAfter(deadline: .now() + (shouldAnimate ? 0.05 : 0)) {
+            NotificationCenter.default.post(name: .focusClipboardSearchNotification, object: nil)
+        }
     }
 
     /// 隐藏面板并移除外部点击监测，防止监听器泄漏。
     func hidePanel() {
         stopOutsideClickMonitoring()
-        panel.orderOut(nil)
+        animationGeneration &+= 1
+        let generation = animationGeneration
+        let shouldAnimate = windowFadeAnimationEnabled
+        let duration = normalizedWindowAnimationDuration
+        guard shouldAnimate else {
+            panel.orderOut(nil)
+            panel.alphaValue = 1
+            return
+        }
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = duration
+            panel.animator().alphaValue = 0
+        } completionHandler: { [weak self] in
+            guard let self else { return }
+            Task { @MainActor [self] in
+                guard self.animationGeneration == generation else { return }
+                self.panel.orderOut(nil)
+                self.panel.alphaValue = 1
+            }
+        }
     }
 
     /// 在显示与隐藏状态间切换面板可见性。
@@ -106,14 +159,182 @@ final class PanelManager {
         }
     }
 
-    /// 将面板左上角对齐到鼠标位置，并限制在当前屏幕可视区域内。
-    private func positionPanelTopLeftAtMouse() {
+    /// 计算面板目标位置：优先输入光标处（需用户开启），否则鼠标位置。
+    private func resolvedPanelOrigin() -> NSPoint {
         let size = panel.frame.size
-        let mouse = NSEvent.mouseLocation
-        // 鼠标位置视为面板左上角（屏幕坐标系为左下角为原点，故 origin.y = mouse.y - height）
-        var origin = NSPoint(x: mouse.x, y: mouse.y - size.height)
-        origin = Self.clampOrigin(origin, size: size, to: mouse)
-        panel.setFrameOrigin(origin)
+        let popupAtCaret = UserDefaults.standard.bool(forKey: "popupAtCaret")
+
+        // 尝试从 Accessibility API 获取输入光标的屏幕坐标
+        var anchor: NSPoint?
+        if popupAtCaret {
+            anchor = Self.caretScreenPoint()
+        }
+
+        let ref = anchor ?? NSEvent.mouseLocation
+        var origin = NSPoint(x: ref.x, y: ref.y - size.height)
+        origin = Self.clampOrigin(origin, size: size, to: ref)
+        return origin
+    }
+
+    /// 通过 macOS Accessibility API 获取当前聚焦输入框的光标屏幕坐标。
+    ///
+    /// 返回值使用 AppKit 屏幕坐标系（原点在左下角）。
+    /// 若无障碍权限未授予、前台应用不支持或无文本光标，返回 `nil`。
+    private static func caretScreenPoint() -> NSPoint? {
+        guard AXIsProcessTrusted() else { return nil }
+
+        let systemWide = AXUIElementCreateSystemWide()
+
+        var focusedElement: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            systemWide,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedElement
+        ) == .success else {
+            return nil
+        }
+        guard let focusedElement,
+              CFGetTypeID(focusedElement) == AXUIElementGetTypeID()
+        else {
+            return nil
+        }
+        let element = unsafeBitCast(focusedElement, to: AXUIElement.self)
+
+        // 先读取选中范围，光标状态通常为 length == 0。
+        var insertionPointValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            element,
+            kAXSelectedTextRangeAttribute as CFString,
+            &insertionPointValue
+        ) == .success else {
+            return nil
+        }
+
+        guard let insertionPointValue,
+              CFGetTypeID(insertionPointValue) == AXValueGetTypeID()
+        else {
+            return nil
+        }
+        let insertionAXValue = unsafeBitCast(insertionPointValue, to: AXValue.self)
+        guard AXValueGetType(insertionAXValue) == .cfRange else {
+            return nil
+        }
+
+        var selectedRange = CFRange(location: 0, length: 0)
+        guard AXValueGetValue(
+            insertionAXValue,
+            .cfRange,
+            &selectedRange
+        ) else {
+            return nil
+        }
+
+        // 先用 insertion point（length=0）取光标矩形，失败再尝试当前选区矩形。
+        var queryRanges = [CFRange(location: selectedRange.location, length: 0)]
+        if selectedRange.length > 0 {
+            queryRanges.append(selectedRange)
+        }
+
+        var caretRect: CGRect?
+        for range in queryRanges {
+            var mutableRange = range
+            guard let rangeValue = AXValueCreate(.cfRange, &mutableRange) else { continue }
+            var boundsValue: CFTypeRef?
+            let status = AXUIElementCopyParameterizedAttributeValue(
+                element,
+                kAXBoundsForRangeParameterizedAttribute as CFString,
+                rangeValue,
+                &boundsValue
+            )
+            guard status == .success,
+                  let boundsValue,
+                  CFGetTypeID(boundsValue) == AXValueGetTypeID()
+            else {
+                continue
+            }
+
+            let boundsAXValue = unsafeBitCast(boundsValue, to: AXValue.self)
+            guard AXValueGetType(boundsAXValue) == .cgRect else {
+                continue
+            }
+
+            var rect = CGRect.zero
+            if AXValueGetValue(boundsAXValue, .cgRect, &rect), !rect.isNull, !rect.isEmpty {
+                caretRect = rect
+                break
+            }
+        }
+
+        // 对不支持 boundsForRange 的应用，退化到“聚焦输入控件左上角”定位。
+        let targetRect: CGRect
+        if let caretRect {
+            targetRect = caretRect
+        } else if let focusedFrame = focusedElementFrame(element) {
+            targetRect = focusedFrame
+        } else {
+            return nil
+        }
+
+        return appKitPoint(fromAXRect: targetRect)
+    }
+
+    /// 获取聚焦元素的外框（用于不支持 caret bounds 的应用降级）。
+    private static func focusedElementFrame(_ element: AXUIElement) -> CGRect? {
+        var positionValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            element,
+            kAXPositionAttribute as CFString,
+            &positionValue
+        ) == .success,
+        let positionValue,
+        CFGetTypeID(positionValue) == AXValueGetTypeID()
+        else {
+            return nil
+        }
+
+        let positionAXValue = unsafeBitCast(positionValue, to: AXValue.self)
+        guard AXValueGetType(positionAXValue) == .cgPoint else {
+            return nil
+        }
+
+        var sizeValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            element,
+            kAXSizeAttribute as CFString,
+            &sizeValue
+        ) == .success,
+        let sizeValue,
+        CFGetTypeID(sizeValue) == AXValueGetTypeID()
+        else {
+            return nil
+        }
+
+        let sizeAXValue = unsafeBitCast(sizeValue, to: AXValue.self)
+        guard AXValueGetType(sizeAXValue) == .cgSize else {
+            return nil
+        }
+
+        var position = CGPoint.zero
+        var size = CGSize.zero
+        guard AXValueGetValue(positionAXValue, .cgPoint, &position),
+              AXValueGetValue(sizeAXValue, .cgSize, &size),
+              size.width > 0,
+              size.height > 0
+        else {
+            return nil
+        }
+
+        let frame = CGRect(origin: position, size: size)
+        return frame
+    }
+
+    /// 将 AX 全局坐标（左上原点）转换为 AppKit 屏幕坐标（左下原点）。
+    private static func appKitPoint(fromAXRect rect: CGRect) -> NSPoint? {
+        guard let desktopTopY = NSScreen.screens.map(\.frame.maxY).max() else {
+            return nil
+        }
+        let appKitY = desktopTopY - rect.origin.y - rect.size.height
+        return NSPoint(x: rect.origin.x, y: appKitY)
     }
 
     /// 将窗口限制在包含光标的屏幕可见区域内，避免大部分区域在屏外。

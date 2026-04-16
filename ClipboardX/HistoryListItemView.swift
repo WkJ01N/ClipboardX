@@ -38,6 +38,7 @@ struct HistoryListItemView: View {
 
     /// 鼠标是否悬浮在当前卡片上。
     @State private var isHovering = false
+    @State private var thumbnail: NSImage?
 
     /// 卡片背景色：选中 > 悬浮 > 默认。
     private var cardBackground: Color {
@@ -70,14 +71,22 @@ struct HistoryListItemView: View {
         Button(action: onActivate) {
             HStack(alignment: .top, spacing: 8) {
                 VStack(alignment: .leading, spacing: 5) {
-                    if item.itemType == "image",
-                       let data = item.itemData,
-                       let nsImage = NSImage(data: data) {
-                        Image(nsImage: nsImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 120, alignment: .leading)
-                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    if item.itemType == "image" {
+                        if let thumbnail {
+                            Image(nsImage: thumbnail)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: 120, alignment: .leading)
+                                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        } else {
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Color.secondary.opacity(0.12))
+                                .frame(height: 120)
+                                .overlay {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                }
+                        }
                     } else if item.itemType == "file" {
                         HStack(spacing: 6) {
                             Image(systemName: "doc.fill")
@@ -132,6 +141,13 @@ struct HistoryListItemView: View {
             if hovering && hoverInterruptsKeyboard {
                 isKeyboardMode = false
             }
+        }
+        .task(id: item.id) {
+            guard item.itemType == "image" else {
+                thumbnail = nil
+                return
+            }
+            thumbnail = await ImageThumbnailManager.shared.getThumbnail(for: item, targetHeight: 120)
         }
         .contextMenu {
             Button {

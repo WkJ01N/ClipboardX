@@ -15,6 +15,11 @@ import SwiftUI
 /// 该视图聚焦“列表级编排”，而单条卡片与预览弹层分别拆分到独立文件，降低耦合度。
 struct HistoryListView: View {
     var isFromPanel: Bool = false
+    /// 快捷键面板与菜单栏弹窗的列表顶部留白分离配置，便于分别微调。
+    private let panelListTopPadding: CGFloat = 6
+    private let menuPopupListTopPadding: CGFloat = 3
+    /// 顶部栏弹窗中搜索栏距离顶部的留白，便于单独微调。
+    private let menuPopupSearchTopPadding: CGFloat = 10
 
     /// SwiftData 上下文，用于更新排序时间、删除记录与写回状态。
     @Environment(\.modelContext) private var modelContext
@@ -190,8 +195,8 @@ struct HistoryListView: View {
         .padding(.vertical, 8)
         .background(Color.primary.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .padding(.horizontal, 12)
-        .padding(.top, 8)
+        .padding(.horizontal, 10)
+        .padding(.top, menuPopupSearchTopPadding)
         .padding(.bottom, 6)
     }
 
@@ -246,6 +251,7 @@ struct HistoryListView: View {
                     .padding(.vertical, 3)
                 }
                 }
+                .padding(.top, isFromPanel ? panelListTopPadding : menuPopupListTopPadding)
             }
             .onAppear {
                 listScrollProxy = proxy

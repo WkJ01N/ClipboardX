@@ -23,6 +23,9 @@ struct SettingsView: View {
     @AppStorage("ignoreSensitiveContent") private var ignoreSensitiveContent = true
     @AppStorage("blacklistedBundleIDs") private var blacklistedBundleIDs: String = ""
     @AppStorage("spaceKeyQuickLookEnabled") private var spaceKeyQuickLookEnabled = true
+    @AppStorage("popupAtCaret") private var popupAtCaret = false
+    @AppStorage("windowFadeAnimationEnabled") private var windowFadeAnimationEnabled = true
+    @AppStorage("windowAnimationDurationMs") private var windowAnimationDurationMs = 220
     @AppStorage("animationStyle") private var animationStyle: AnimationStyle = .float
     @AppStorage("fadeAnimationDuration") private var fadeAnimationDuration = 0.12
     @AppStorage("floatAnimationResponse") private var floatAnimationResponse = 0.40
@@ -188,6 +191,31 @@ struct SettingsView: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
+                        }
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle("快捷键呼出时跟随输入光标 (Caret)", isOn: $popupAtCaret)
+                    Text("开启后将尝试在文本输入光标处显示面板；若获取失败或未开启无障碍权限，将自动回退到鼠标位置。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle("启用窗口淡入淡出动画", isOn: $windowFadeAnimationEnabled)
+                    if windowFadeAnimationEnabled {
+                        Stepper(
+                            value: Binding(
+                                get: { windowAnimationDurationMs },
+                                set: { newValue in
+                                    windowAnimationDurationMs = max(100, min(600, newValue))
+                                }
+                            ),
+                            in: 100...600,
+                            step: 10
+                        ) {
+                            Text("窗口动画时长: \(windowAnimationDurationMs) ms")
                         }
                     }
                 }
