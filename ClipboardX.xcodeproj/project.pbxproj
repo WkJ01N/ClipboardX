@@ -14,9 +14,22 @@
 		D55068F52F89457100AC98EF /* ClipboardX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClipboardX.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		D51488A52F9687BB002B8DAF /* Exceptions for "ClipboardX" folder in "ClipboardX" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D55068F42F89457100AC98EF /* ClipboardX */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D55068F72F89457100AC98EF /* ClipboardX */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D51488A52F9687BB002B8DAF /* Exceptions for "ClipboardX" folder in "ClipboardX" target */,
+			);
 			path = ClipboardX;
 			sourceTree = "<group>";
 		};
@@ -37,8 +50,8 @@
 		D55068EC2F89457100AC98EF = {
 			isa = PBXGroup;
 			children = (
-				D55068F72F89457100AC98EF /* ClipboardX */,
 				D55068F62F89457100AC98EF /* Products */,
+				D55068F72F89457100AC98EF /* ClipboardX */,
 			);
 			sourceTree = "<group>";
 		};
@@ -92,9 +105,10 @@
 				};
 			};
 			buildConfigurationList = D55068F02F89457100AC98EF /* Build configuration list for PBXProject "ClipboardX" */;
-			developmentRegion = en;
+			developmentRegion = "zh-Hans";
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				"zh-Hans",
 				en,
 				Base,
 			);
@@ -194,6 +208,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -251,6 +266,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Release;
 		};
@@ -268,6 +284,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ClipboardX/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ClipboardX;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -277,7 +294,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.wkj01n.ClipboardX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -304,6 +321,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ClipboardX/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ClipboardX;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -313,7 +331,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.wkj01n.ClipboardX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;

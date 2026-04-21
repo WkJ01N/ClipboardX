@@ -36,10 +36,14 @@ Install: You they need to enable the permission to allow software from any sourc
 * Confirm pasting the selected item: Enter
 * Clear all unpinned items: Cmd + Delete -> Enter
 * Close the floating panel: ESC
+
 ## Technical Architecture
+
 UI Framework: SwiftUI (Highly modular component splitting)
 Data Persistence: SwiftData (@Model & @Query)
 System Low-Level Control: AppKit (NSPanel focus routing interception), CGEvent (Hardware-level keyboard event simulation)
 Open-Source Dependencies: KeyboardShortcuts
+
 ## License
+
 This project is open-source under the MIT License. You are free to use, modify, and distribute it.

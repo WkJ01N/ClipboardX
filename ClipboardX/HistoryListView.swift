@@ -15,21 +15,23 @@ import SwiftUI
 /// 该视图聚焦“列表级编排”，而单条卡片与预览弹层分别拆分到独立文件，降低耦合度。
 struct HistoryListView: View {
     var isFromPanel: Bool = false
+    var isTypewriterMode: Bool = false
+    var onTypewriterSelect: ((String) -> Void)? = nil
     /// 快捷键面板与菜单栏弹窗的列表顶部留白分离配置，便于分别微调。
     private let panelListTopPadding: CGFloat = 6
     private let menuPopupListTopPadding: CGFloat = 3
     /// 顶部栏弹窗中搜索栏距离顶部的留白，便于单独微调。
-    private let menuPopupSearchTopPadding: CGFloat = 10
+    private let menuPopupSearchTopPadding: CGFloat = 11
 
     /// SwiftData 上下文，用于更新排序时间、删除记录与写回状态。
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.openSettings) private var openSettings
     @Query(sort: \ClipboardItem.createdAt, order: .reverse) private var items: [ClipboardItem]
     /// 列表重排时的共享几何命名空间，用于平滑置顶动画。
     @Namespace private var animationNamespace
 
     /// 搜索关键词（本地过滤）。
     @State private var searchText = ""
+    @State private var selectedTab: TabSelection = .history
     /// 搜索框焦点状态。
     @FocusState private var isSearchFocused: Bool
     /// 列表容器焦点状态（用于键盘事件接收）。
@@ -61,6 +63,26 @@ struct HistoryListView: View {
     @AppStorage("floatAnimationResponse") private var floatAnimationResponse = 0.40
     /// 空格键行为：预览或直接粘贴。
     @AppStorage("spaceKeyQuickLookEnabled") private var spaceKeyQuickLookEnabled = true
+    @AppStorage("isMonitoringPaused") private var isMonitoringPaused = false
+    @AppStorage("showPanelPauseControl") private var showPanelPauseControl = true
+    @AppStorage("displayStyle") private var displayStyle = DisplayStyle.list.rawValue
+    @AppStorage("gridCardHeight") private var gridCardHeight = 148.0
+    @AppStorage("favoritesEnabled") private var favoritesEnabled = true
+
+    private var currentDisplayStyle: DisplayStyle {
+        DisplayStyle(rawValue: displayStyle) ?? .list
+    }
+
+    private var isFavoritesTabActive: Bool {
+        favoritesEnabled && selectedTab == .favorites
+    }
+
+    private var listTopPadding: CGFloat {
+        if isTypewriterMode {
+            return 0
+        }
+        return isFromPanel ? panelListTopPadding : menuPopupListTopPadding
+    }
 
     /// 基于搜索词并结合固定优先规则生成最终展示数据。
     ///
@@ -68,10 +90,14 @@ struct HistoryListView: View {
     /// 是为了兼容当前工具链下 `@Query` 对 `Bool` 多字段排序的限制。
     private var filteredItems: [ClipboardItem] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let base = trimmed.isEmpty
-            ? items
-            : items.filter { $0.content.localizedCaseInsensitiveContains(trimmed) }
-        return base.sorted {
+        let modeBase = isTypewriterMode ? items.filter { $0.itemType == "text" } : items
+        let tabFiltered = favoritesEnabled
+            ? modeBase.filter { selectedTab == .history ? !$0.isFavorite : $0.isFavorite }
+            : modeBase
+        let searchFiltered = trimmed.isEmpty
+            ? tabFiltered
+            : tabFiltered.filter { $0.content.localizedCaseInsensitiveContains(trimmed) }
+        return searchFiltered.sorted {
             if $0.isPinned != $1.isPinned {
                 return $0.isPinned && !$1.isPinned
             }
@@ -81,11 +107,20 @@ struct HistoryListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if isTypewriterMode {
+                typewriterHintHeader
+            }
+
             if !isFromPanel {
                 searchField
             }
+            if favoritesEnabled {
+                tabPicker
+            }
 
-            if items.isEmpty {
+            if filteredItems.isEmpty, isTypewriterMode {
+                emptyStateTypewriter
+            } else if items.isEmpty {
                 emptyStateNoHistory
             } else if filteredItems.isEmpty {
                 emptyStateNoMatches
@@ -93,17 +128,30 @@ struct HistoryListView: View {
                 listSection
             }
 
-            Divider()
-
-            toolbar
+            if !isTypewriterMode {
+                Divider()
+                toolbar
+            }
         }
         .frame(width: 320, height: 450)
         .focusable()
         .focused($isListFocused)
         .focusRingType(.none)
-        .onKeyPress(.upArrow, phases: .down) { _ in moveSelection(up: true) }
-        .onKeyPress(.downArrow, phases: .down) { _ in moveSelection(up: false) }
+        .onKeyPress(.upArrow, phases: .down) { _ in moveSelection(.up) }
+        .onKeyPress(.downArrow, phases: .down) { _ in moveSelection(.down) }
+        .onKeyPress(.leftArrow, phases: .down) { _ in moveSelection(.left) }
+        .onKeyPress(.rightArrow, phases: .down) { _ in moveSelection(.right) }
         .onKeyPress(.space, phases: .down) { _ in
+            if isTypewriterMode {
+                let id = selectedItemID ?? filteredItems.first?.id
+                guard let id,
+                      let item = filteredItems.first(where: { $0.id == id }) else {
+                    return .ignored
+                }
+                activateItem(item)
+                return .handled
+            }
+
             if spaceKeyQuickLookEnabled {
                 if quickLookItemID != nil {
                     quickLookItemID = nil
@@ -165,8 +213,27 @@ struct HistoryListView: View {
                 isSearchFocused = true
             }
         }
+        .onChange(of: selectedTab) {
+            selectedItemID = nil
+            isKeyboardMode = false
+            quickLookItemID = nil
+            if let proxy = listScrollProxy {
+                scrollListToTop(proxy: proxy)
+            }
+        }
+        .onChange(of: favoritesEnabled) {
+            selectedTab = .history
+            selectedItemID = nil
+            isKeyboardMode = false
+            quickLookItemID = nil
+            showClearConfirmation = false
+            if let proxy = listScrollProxy {
+                scrollListToTop(proxy: proxy)
+            }
+        }
         .overlay {
-            if let qlID = quickLookItemID,
+            if !isTypewriterMode,
+               let qlID = quickLookItemID,
                let item = filteredItems.first(where: { $0.id == qlID }) {
                 QuickLookPreview(item: item, onClose: {
                     quickLookItemID = nil
@@ -188,8 +255,8 @@ struct HistoryListView: View {
                 .focused($isSearchFocused)
                 .onKeyPress(.escape, phases: .down) { _ in handleEscapeKey() }
                 .onKeyPress(.return, phases: .down) { _ in handleReturnKey() }
-                .onKeyPress(.upArrow, phases: .down) { _ in moveSelection(up: true) }
-                .onKeyPress(.downArrow, phases: .down) { _ in moveSelection(up: false) }
+                .onKeyPress(.upArrow, phases: .down) { _ in moveSelection(.up) }
+                .onKeyPress(.downArrow, phases: .down) { _ in moveSelection(.down) }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
@@ -198,6 +265,39 @@ struct HistoryListView: View {
         .padding(.horizontal, 10)
         .padding(.top, menuPopupSearchTopPadding)
         .padding(.bottom, 6)
+    }
+
+    private var tabPicker: some View {
+        Picker("", selection: $selectedTab) {
+            Text("历史记录").tag(TabSelection.history)
+            Text("常用").tag(TabSelection.favorites)
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal, 10)
+        .padding(.top, isTypewriterMode ? 4 : (isFromPanel ? 10 : 0))
+        .padding(.bottom, isTypewriterMode ? 2 : 6)
+    }
+
+    private var typewriterHintHeader: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Image(systemName: "keyboard.badge.ellipsis")
+                Text("打字机模式")
+                    .fontWeight(.semibold)
+            }
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+
+            Text("选择一条记录后将自动返回原窗口并开始逐字输入。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.top, 8)
+        .padding(.bottom, 2)
+        .background(Color.primary.opacity(0.03))
     }
 
     /// 历史为空时的占位视图。
@@ -224,40 +324,69 @@ struct HistoryListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private var emptyStateTypewriter: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "keyboard")
+                .font(.system(size: 28))
+            Text("暂无可用于打字机模式的纯文本记录")
+                .font(.callout)
+        }
+        .foregroundColor(.secondary)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     /// 历史列表主体区域。
     private var listSection: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(spacing: 0) {
-                ForEach(Array(filteredItems.enumerated()), id: \.element.id) { index, item in
-                    HistoryListItemView(
-                        index: index,
-                        isFromPanel: isFromPanel,
-                        isKeyboardMode: $isKeyboardMode,
-                        isSelected: selectedItemID == item.id,
-                        isFadingOut: fadingItemID == item.id,
-                        namespace: animationNamespace,
-                        item: item,
-                        onActivate: {
-                            activateItem(item)
-                        },
-                        onCopyOnly: {
-                            copyToPasteboard(item: item)
+                if currentDisplayStyle == .grid {
+                    LazyVGrid(
+                        columns: [GridItem(.flexible(), spacing: 0), GridItem(.flexible(), spacing: 0)],
+                        spacing: 0
+                    ) {
+                        ForEach(Array(filteredItems.enumerated()), id: \.element.id) { index, item in
+                            historyCard(for: item, index: index, fixedHeight: CGFloat(gridCardHeight))
                         }
-                    )
-                    .id(item.id)
-                    .tag(item.id)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 3)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.top, listTopPadding)
+                } else {
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(filteredItems.enumerated()), id: \.element.id) { index, item in
+                            historyCard(for: item, index: index, fixedHeight: nil)
+                        }
+                    }
+                    .padding(.top, listTopPadding)
                 }
-                }
-                .padding(.top, isFromPanel ? panelListTopPadding : menuPopupListTopPadding)
             }
             .onAppear {
                 listScrollProxy = proxy
                 scrollListToTop(proxy: proxy)
             }
         }
+    }
+
+    private func historyCard(for item: ClipboardItem, index: Int, fixedHeight: CGFloat?) -> some View {
+        HistoryListItemView(
+            index: index,
+            isFromPanel: isFromPanel,
+            isKeyboardMode: $isKeyboardMode,
+            isSelected: selectedItemID == item.id,
+            isFadingOut: fadingItemID == item.id,
+            namespace: animationNamespace,
+            item: item,
+            fixedHeight: fixedHeight,
+            onActivate: {
+                activateItem(item)
+            },
+            onCopyOnly: {
+                copyToPasteboard(item: item)
+            }
+        )
+        .id(item.id)
+        .tag(item.id)
+        .padding(.horizontal, currentDisplayStyle == .grid ? 4 : 10)
+        .padding(.vertical, currentDisplayStyle == .grid ? 2 : 3)
     }
 
     /// 将列表滚动到顶部（新内容插入或首次展示时）。
@@ -286,11 +415,7 @@ struct HistoryListView: View {
         HStack {
             if isFromPanel {
                 if !showClearConfirmation {
-                    Button {
-                        NSApp.activate(ignoringOtherApps: true)
-                        openSettings()
-                        NotificationCenter.default.post(name: .hidePanelNotification, object: nil)
-                    } label: {
+                    SettingsLink {
                         HStack(spacing: 4) {
                             Image(systemName: "gearshape")
                             Text("设置")
@@ -303,19 +428,46 @@ struct HistoryListView: View {
                         .cornerRadius(4)
                     }
                     .buttonStyle(.plain)
+                    .simultaneousGesture(TapGesture().onEnded {
+                        NSApp.activate(ignoringOtherApps: true)
+                        NotificationCenter.default.post(name: .hidePanelNotification, object: nil)
+                    })
                     .transition(.opacity)
+
+                    if showPanelPauseControl {
+                        Button {
+                            isMonitoringPaused.toggle()
+                        } label: {
+                            HStack(spacing: 4) {
+                                if isMonitoringPaused {
+                                    Text("已暂停监听")
+                                    Image(systemName: "play.circle")
+                                } else {
+                                    Image(systemName: "pause.circle")
+                                }
+                            }
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.primary.opacity(0.05))
+                            .cornerRadius(4)
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.opacity)
+                    }
                 }
             }
 
             Spacer()
 
             if showClearConfirmation {
-                Text("确定清空?")
+                Text(isFavoritesTabActive ? "确定清空常用?" : "确定清空?")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
 
                 Button("确认") {
-                    clearAllHistory()
+                    clearCurrentScope()
                     showClearConfirmation = false
                 }
                 .font(.system(size: 12))
@@ -330,17 +482,17 @@ struct HistoryListView: View {
                 .buttonStyle(.plain)
             } else {
                 Button {
-                    if confirmBeforeClear {
+                    if isFavoritesTabActive || confirmBeforeClear {
                         withAnimation {
                             showClearConfirmation = true
                         }
                     } else {
-                        clearAllHistory()
+                        clearCurrentScope()
                     }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "trash")
-                        Text("清空")
+                        Text(isFavoritesTabActive ? "清空常用" : "清空")
                     }
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
@@ -360,22 +512,46 @@ struct HistoryListView: View {
     }
 
     /// 处理键盘上下方向键的选中迁移。
-    private func moveSelection(up: Bool) -> KeyPress.Result {
+    private func moveSelection(_ direction: NavigationDirection) -> KeyPress.Result {
         guard !filteredItems.isEmpty else { return .ignored }
+        guard let delta = navigationDelta(for: direction) else { return .ignored }
         isKeyboardMode = true
 
         if let current = selectedItemID,
            let idx = filteredItems.firstIndex(where: { $0.id == current }) {
-            let next = up ? idx - 1 : idx + 1
+            let next = idx + delta
             guard filteredItems.indices.contains(next) else { return .handled }
             selectedItemID = filteredItems[next].id
             scrollSelectionIntoView(id: selectedItemID)
             return .handled
         }
 
-        selectedItemID = up ? filteredItems.last?.id : filteredItems.first?.id
+        switch direction {
+        case .up, .left:
+            selectedItemID = filteredItems.last?.id
+        case .down, .right:
+            selectedItemID = filteredItems.first?.id
+        }
         scrollSelectionIntoView(id: selectedItemID)
         return .handled
+    }
+
+    private func navigationDelta(for direction: NavigationDirection) -> Int? {
+        switch currentDisplayStyle {
+        case .list:
+            switch direction {
+            case .up: return -1
+            case .down: return 1
+            case .left, .right: return nil
+            }
+        case .grid:
+            switch direction {
+            case .left: return -1
+            case .right: return 1
+            case .up: return -2
+            case .down: return 2
+            }
+        }
     }
 
     /// 处理 ESC：优先关闭预览，其次清空搜索，最后关闭面板。
@@ -399,7 +575,7 @@ struct HistoryListView: View {
     /// 处理回车：关闭预览后激活当前选中项。
     private func handleReturnKey() -> KeyPress.Result {
         if showClearConfirmation {
-            clearAllHistory()
+            clearCurrentScope()
             showClearConfirmation = false
             return .handled
         }
@@ -429,6 +605,11 @@ struct HistoryListView: View {
 
     /// 激活历史项：写回剪贴板，并按入口上下文执行粘贴/置顶策略。
     private func activateItem(_ item: ClipboardItem) {
+        if isTypewriterMode, let onTypewriterSelect, item.itemType == "text" {
+            resetSelectionState()
+            onTypewriterSelect(item.content)
+            return
+        }
         resetSelectionState()
         copyToPasteboard(item: item)
 
@@ -498,7 +679,7 @@ struct HistoryListView: View {
     private func clearAllHistory() {
         NSPasteboard.general.clearContents()
 
-        for item in items where !item.isPinned {
+        for item in items where !item.isPinned && (!favoritesEnabled || !item.isFavorite) {
             modelContext.delete(item)
         }
 
@@ -507,6 +688,36 @@ struct HistoryListView: View {
         selectedItemID = nil
         isKeyboardMode = false
     }
+
+    private func clearAllFavorites() {
+        for item in items where item.isFavorite {
+            item.isFavorite = false
+        }
+        try? modelContext.save()
+        searchText = ""
+        selectedItemID = nil
+        isKeyboardMode = false
+    }
+
+    private func clearCurrentScope() {
+        if isFavoritesTabActive {
+            clearAllFavorites()
+        } else {
+            clearAllHistory()
+        }
+    }
+}
+
+private enum NavigationDirection {
+    case up
+    case down
+    case left
+    case right
+}
+
+private enum TabSelection: Hashable {
+    case history
+    case favorites
 }
 
 private extension View {

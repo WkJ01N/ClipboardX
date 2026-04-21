@@ -16,11 +16,20 @@ import SwiftUI
 /// 将“面板生命周期”从 SwiftUI 视图层中剥离，避免界面逻辑与窗口控制逻辑耦合。
 @MainActor
 final class PanelManager {
+    @AppStorage("appLanguage") private var appLanguage = AppLanguage.system.rawValue
     @AppStorage("windowFadeAnimationEnabled") private var windowFadeAnimationEnabled = true
     @AppStorage("windowAnimationDurationMs") private var windowAnimationDurationMs = 220
+    @AppStorage("hideOnScreenShare") private var hideOnScreenShare = true
+    @AppStorage("enableTypewriterMode") private var enableTypewriterMode = false
+    @AppStorage("typewriterBaseInterval") private var typewriterBaseInterval = 0.05
+    @AppStorage("enableRandomInterval") private var enableRandomInterval = false
+    @AppStorage("randomIntervalMin") private var randomIntervalMin = 0.01
+    @AppStorage("randomIntervalMax") private var randomIntervalMax = 0.10
 
     /// 主悬浮窗口实例（边框隐藏、高层级、支持全屏辅助显示）。
     private let panel: NSPanel
+    private let modelContainer: ModelContainer
+    private let hostingController: NSHostingController<AnyView>
     /// 监听其他应用/桌面的鼠标点击，用于点击外部自动收起。
     private var outsideClickGlobalMonitor: Any?
     /// 监听本应用内鼠标点击，用于菜单栏等区域点击时收起。
@@ -29,6 +38,8 @@ final class PanelManager {
     private var hidePanelNotificationObserver: NSObjectProtocol?
     /// 用于避免 show/hide 快速切换时旧动画 completion 污染新状态。
     private var animationGeneration: UInt = 0
+    private var currentPanelMode: PanelMode = .normal
+    private var typewriterTargetAppPID: pid_t?
 
     /// 悬浮面板内容区固定尺寸，与历史列表布局一致。
     private static let contentSize = NSSize(width: 320, height: 450)
@@ -39,6 +50,9 @@ final class PanelManager {
 
     /// 初始化面板管理器并绑定全局快捷键、通知监听与内容控制器。
     init(modelContainer: ModelContainer) {
+        self.modelContainer = modelContainer
+        let hideOnScreenShareAtLaunch = UserDefaults.standard.object(forKey: "hideOnScreenShare") as? Bool ?? true
+
         let panel = ClipboardPanel(
             contentRect: NSRect(origin: .zero, size: Self.contentSize),
             styleMask: [.borderless],
@@ -55,22 +69,23 @@ final class PanelManager {
         panel.hidesOnDeactivate = false
         panel.hasShadow = true
         panel.isMovableByWindowBackground = false
+        panel.sharingType = hideOnScreenShareAtLaunch ? .none : .readOnly
 
-        let rootView = HistoryListView(isFromPanel: true)
-            .modelContainer(modelContainer)
-            .background(Color(nsColor: .windowBackgroundColor))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-        let hosting = NSHostingController(rootView: rootView)
+        let hosting = NSHostingController(rootView: AnyView(EmptyView()))
         hosting.view.frame = NSRect(origin: .zero, size: Self.contentSize)
         hosting.view.wantsLayer = true
         panel.contentViewController = hosting
         panel.setContentSize(Self.contentSize)
 
         self.panel = panel
+        self.hostingController = hosting
+        refreshPanelRootView()
 
         KeyboardShortcuts.onKeyDown(for: .toggleClipboard) { [weak self] in
             self?.togglePanel()
+        }
+        KeyboardShortcuts.onKeyDown(for: .showTypewriterPanel) { [weak self] in
+            self?.toggleTypewriterPanel()
         }
 
         hidePanelNotificationObserver = NotificationCenter.default.addObserver(
@@ -92,6 +107,30 @@ final class PanelManager {
 
     /// 显示面板并将其定位到鼠标附近，同时建立外部点击监测。
     func showPanel() {
+        showPanel(mode: .normal)
+    }
+
+    func showTypewriterPanel() {
+        guard enableTypewriterMode else { return }
+        showPanel(mode: .typewriter)
+    }
+
+    private func showPanel(mode: PanelMode) {
+        if mode == .typewriter {
+            let currentPID = ProcessInfo.processInfo.processIdentifier
+            if let frontApp = NSWorkspace.shared.frontmostApplication,
+               frontApp.processIdentifier != currentPID {
+                typewriterTargetAppPID = frontApp.processIdentifier
+            } else {
+                typewriterTargetAppPID = nil
+            }
+        } else {
+            typewriterTargetAppPID = nil
+        }
+
+        panel.sharingType = hideOnScreenShare ? .none : .readOnly
+        refreshPanelRootView(mode: mode)
+        currentPanelMode = mode
         let targetOrigin = resolvedPanelOrigin()
         stopOutsideClickMonitoring()
         beginOutsideClickMonitoring()
@@ -121,6 +160,30 @@ final class PanelManager {
         // 等窗口进入 key 状态后再广播焦点请求，提升上下键接管成功率。
         DispatchQueue.main.asyncAfter(deadline: .now() + (shouldAnimate ? 0.05 : 0)) {
             NotificationCenter.default.post(name: .focusClipboardSearchNotification, object: nil)
+        }
+    }
+
+    private func refreshPanelRootView(mode: PanelMode = .normal) {
+        let locale = LanguageManager.locale(for: appLanguage)
+        switch mode {
+        case .normal:
+            hostingController.rootView = AnyView(
+                HistoryListView(isFromPanel: true)
+                    .modelContainer(modelContainer)
+                    .background(Color(nsColor: .windowBackgroundColor))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .environment(\.locale, locale)
+            )
+        case .typewriter:
+            hostingController.rootView = AnyView(
+                TypewriterListView { [weak self] text in
+                    self?.handleTypewriterSelection(text)
+                }
+                .modelContainer(modelContainer)
+                .background(Color(nsColor: .windowBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .environment(\.locale, locale)
+            )
         }
     }
 
@@ -155,7 +218,52 @@ final class PanelManager {
         if panel.isVisible {
             hidePanel()
         } else {
-            showPanel()
+            showPanel(mode: .normal)
+        }
+    }
+
+    func toggleTypewriterPanel() {
+        guard enableTypewriterMode else { return }
+        if panel.isVisible && currentPanelMode == .typewriter {
+            hidePanel()
+        } else {
+            showPanel(mode: .typewriter)
+        }
+    }
+
+    /// 用于长按快捷键：若已显示则仅聚焦，否则执行显示流程。
+    func presentPanel() {
+        if panel.isVisible {
+            NSRunningApplication.current.activate(options: [])
+            panel.makeMain()
+            panel.makeKeyAndOrderFront(nil)
+            NotificationCenter.default.post(name: .focusClipboardSearchNotification, object: nil)
+        } else {
+            showPanel(mode: .normal)
+        }
+    }
+
+    private func handleTypewriterSelection(_ text: String) {
+        hidePanel()
+        let base = max(0.001, typewriterBaseInterval)
+        let minInterval = max(0.001, min(randomIntervalMin, randomIntervalMax))
+        let maxInterval = max(minInterval, max(randomIntervalMin, randomIntervalMax))
+        let targetPID = typewriterTargetAppPID
+        typewriterTargetAppPID = nil
+        Task {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            if let targetPID,
+               let app = NSRunningApplication(processIdentifier: targetPID) {
+                app.activate(options: [])
+                try? await Task.sleep(nanoseconds: 60_000_000)
+            }
+            await TypewriterSimulator.typeText(
+                text,
+                baseInterval: base,
+                useRandom: enableRandomInterval,
+                min: minInterval,
+                max: maxInterval
+            )
         }
     }
 
@@ -398,6 +506,11 @@ final class PanelManager {
         if event.window === panel { return }
         hideIfClickOutsidePanel()
     }
+}
+
+private enum PanelMode {
+    case normal
+    case typewriter
 }
 
 /// 允许无边框面板参与键盘焦点路由。

@@ -16,6 +16,8 @@ final class ClipboardItem {
     var itemType: String
     var itemData: Data?
     var isPinned: Bool
+    var isFavorite: Bool = false
+    var isSensitive: Bool = false
 
     init(
         id: UUID = UUID(),
@@ -23,7 +25,9 @@ final class ClipboardItem {
         createdAt: Date = Date(),
         itemType: String = "text",
         itemData: Data? = nil,
-        isPinned: Bool = false
+        isPinned: Bool = false,
+        isFavorite: Bool = false,
+        isSensitive: Bool = false
     ) {
         self.id = id
         self.content = content
@@ -31,5 +35,7 @@ final class ClipboardItem {
         self.itemType = itemType
         self.itemData = itemData
         self.isPinned = isPinned
+        self.isFavorite = isFavorite
+        self.isSensitive = isSensitive
     }
 }

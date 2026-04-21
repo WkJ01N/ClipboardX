@@ -19,10 +19,16 @@ struct HistoryListItemView: View {
     var isFromPanel: Bool = false
     /// SwiftData 上下文，用于行级右键动作（固定/删除）持久化。
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
     /// 键盘导览模式绑定：用于与父视图共享高亮控制状态。
     @Binding var isKeyboardMode: Bool
     /// 鼠标悬浮是否会打断键盘高亮（用户可配置）。
     @AppStorage("hoverInterruptsKeyboard") private var hoverInterruptsKeyboard = true
+    @AppStorage("timeFormat") private var timeFormat = TimeDisplayFormat.relative.rawValue
+    @AppStorage("showSeconds") private var showSeconds = false
+    @AppStorage("showItemTimestamp") private var showItemTimestamp = true
+    @AppStorage("keepOriginalAfterTransform") private var keepOriginalAfterTransform = true
+    @AppStorage("maskSensitiveContent") private var maskSensitiveContent = true
     /// 当前行是否被列表选中。
     let isSelected: Bool
     /// 当前行是否处于淡出阶段（fade 动画）。
@@ -31,6 +37,8 @@ struct HistoryListItemView: View {
     let namespace: Namespace.ID
     /// 当前行对应的剪贴板数据实体。
     let item: ClipboardItem
+    /// 固定卡片高度（双列网格模式下用于统一尺寸与点击区域）。
+    let fixedHeight: CGFloat?
     /// 主激活动作（粘贴并执行后续策略）。
     let onActivate: () -> Void
     /// “仅复制”动作（只写回剪贴板，不触发粘贴链路）。
@@ -67,6 +75,80 @@ struct HistoryListItemView: View {
         isHovering ? 1.015 : 1.0
     }
 
+    private var formattedCreatedAt: String {
+        let format = TimeDisplayFormat(rawValue: timeFormat) ?? .relative
+        switch format {
+        case .relative:
+            let formatter = RelativeDateTimeFormatter()
+            formatter.locale = locale
+            formatter.unitsStyle = .full
+            return formatter.localizedString(for: item.createdAt, relativeTo: Date())
+        case .absolute24:
+            return absoluteTimestampString(use24Hour: true)
+        case .absolute12:
+            return absoluteTimestampString(use24Hour: false)
+        }
+    }
+
+    private func absoluteTimestampString(use24Hour: Bool) -> String {
+        let calendar = Calendar.current
+        let itemDay = calendar.startOfDay(for: item.createdAt)
+        let today = calendar.startOfDay(for: Date())
+        let dayDistance = calendar.dateComponents([.day], from: itemDay, to: today).day ?? 999
+
+        let timeFormatter = DateFormatter()
+        timeFormatter.locale = locale
+        if use24Hour {
+            timeFormatter.dateFormat = showSeconds ? "HH:mm:ss" : "HH:mm"
+        } else {
+            timeFormatter.dateFormat = showSeconds ? "h:mm:ss a" : "h:mm a"
+        }
+        let timeText = timeFormatter.string(from: item.createdAt)
+
+        if dayDistance == 0 {
+            return timeText
+        }
+        if dayDistance == 1 {
+            let prefix = locale.identifier.hasPrefix("zh") ? "昨天" : "Yesterday"
+            return "\(prefix) \(timeText)"
+        }
+        if dayDistance == 2 {
+            let prefix = locale.identifier.hasPrefix("zh") ? "前天" : "2 days ago"
+            return "\(prefix) \(timeText)"
+        }
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = locale
+        dateFormatter.dateFormat = "MM-dd"
+        return dateFormatter.string(from: item.createdAt)
+    }
+
+    private var localizedContentText: String {
+        switch item.content {
+        case "[Image]", "[图片]":
+            return locale.identifier.hasPrefix("zh") ? "[图片]" : "[Image]"
+        default:
+            return item.content
+        }
+    }
+
+    private var displayContentText: String {
+        guard item.itemType == "text", item.isSensitive, maskSensitiveContent else {
+            return localizedContentText
+        }
+        return maskedSensitiveText(item.content)
+    }
+
+    private func maskedSensitiveText(_ text: String) -> String {
+        let count = text.count
+        guard count > 0 else { return text }
+        if count <= 4 { return String(repeating: "•", count: count) }
+        let prefix = String(text.prefix(2))
+        let suffix = String(text.suffix(2))
+        let maskedBody = String(repeating: "•", count: max(4, count - 4))
+        return "\(prefix)\(maskedBody)\(suffix)"
+    }
+
     var body: some View {
         Button(action: onActivate) {
             HStack(alignment: .top, spacing: 8) {
@@ -95,7 +177,7 @@ struct HistoryListItemView: View {
                                 .multilineTextAlignment(.leading)
                         }
                     } else {
-                        Text(item.content)
+                        Text(displayContentText)
                             .lineLimit(3)
                             .multilineTextAlignment(.leading)
                             .textSelection(.enabled)
@@ -104,22 +186,44 @@ struct HistoryListItemView: View {
 
                 Spacer()
 
-                HStack(spacing: 6) {
-                    if index < 9 {
-                        Text("⌘\(index + 1)")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary.opacity(0.5))
+                VStack(alignment: .trailing, spacing: 4) {
+                    HStack(spacing: 6) {
+                        if item.isFavorite {
+                            Image(systemName: "star.fill")
+                                .font(.caption2)
+                                .foregroundColor(.yellow)
+                        }
+
+                        if index < 9 {
+                            Text("⌘\(index + 1)")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary.opacity(0.5))
+                        }
+
+                        if item.isPinned {
+                            Image(systemName: "pin.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .rotationEffect(.degrees(45))
+                        }
+
+                        if item.isSensitive {
+                            Image(systemName: "lock.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                        }
                     }
 
-                    if item.isPinned {
-                        Image(systemName: "pin.fill")
+                    if showItemTimestamp {
+                        Text(formattedCreatedAt)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .rotationEffect(.degrees(45))
+                            .lineLimit(1)
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: fixedHeight, maxHeight: fixedHeight, alignment: .topLeading)
+            .contentShape(Rectangle())
             .padding(12)
             .background(cardBackground)
             .cornerRadius(8)
@@ -158,6 +262,67 @@ struct HistoryListItemView: View {
             }
 
             Button {
+                item.isFavorite.toggle()
+                try? modelContext.save()
+            } label: {
+                Label(item.isFavorite ? "取消常用" : "加入常用", systemImage: item.isFavorite ? "star.slash" : "star")
+            }
+
+            if item.itemType == "text" {
+                Divider()
+
+                Menu {
+                    if let autoDecrypted = CryptoManager.autoDecrypt(item.content) {
+                        Button {
+                            transformAndCopy(autoDecrypted)
+                        } label: {
+                            Label {
+                                Text("智能解密并复制")
+                            } icon: {
+                                Image(systemName: "wand.and.stars")
+                            }
+                        }
+
+                        Divider()
+                    }
+
+                    Button {
+                        guard let encoded = CryptoManager.base64Encode(item.content) else { return }
+                        transformAndCopy(encoded)
+                    } label: {
+                        Text("Base64 编码")
+                    }
+
+                    Button {
+                        guard let decoded = CryptoManager.base64Decode(item.content) else { return }
+                        transformAndCopy(decoded)
+                    } label: {
+                        Text("Base64 解密")
+                    }
+
+                    Button {
+                        guard let encoded = CryptoManager.urlEncode(item.content) else { return }
+                        transformAndCopy(encoded)
+                    } label: {
+                        Text("URL 编码")
+                    }
+
+                    Button {
+                        guard let decoded = CryptoManager.urlDecode(item.content) else { return }
+                        transformAndCopy(decoded)
+                    } label: {
+                        Text("URL 解密")
+                    }
+                } label: {
+                    Label {
+                        Text("加密 / 解密")
+                    } icon: {
+                        Image(systemName: "lock.shield")
+                    }
+                }
+            }
+
+            Button {
                 onCopyOnly()
             } label: {
                 Label("仅复制", systemImage: "doc.on.doc")
@@ -170,5 +335,18 @@ struct HistoryListItemView: View {
                 Label("删除此记录", systemImage: "trash")
             }
         }
+    }
+
+    private func writeToPasteboard(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+    }
+
+    private func transformAndCopy(_ text: String) {
+        writeToPasteboard(text)
+        guard !keepOriginalAfterTransform else { return }
+        modelContext.delete(item)
+        try? modelContext.save()
     }
 }

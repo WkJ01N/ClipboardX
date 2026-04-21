@@ -1,0 +1,1546 @@
+{
+  "sourceLanguage" : "zh-Hans",
+  "strings" : {
+    "" : {
+      "shouldTranslate" : false
+    },
+    "-" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "-"
+          }
+        }
+      }
+    },
+    "^(utm_.*|spm|fbclid|gclid|share_source|vd_source|si)$" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "^(utm_.*|spm|fbclid|gclid|share_source|vd_source|si)$"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "+" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+"
+          }
+        }
+      }
+    },
+    "⌘%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘%lld"
+          }
+        }
+      }
+    },
+    "1分钟" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 Minute"
+          }
+        }
+      }
+    },
+    "1天" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 Day"
+          }
+        }
+      }
+    },
+    "5分钟" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5 Minutes"
+          }
+        }
+      }
+    },
+    "7天" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 Days"
+          }
+        }
+      }
+    },
+    "10分钟" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "10 Minutes"
+          }
+        }
+      }
+    },
+    "12小时制" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "12 Hours"
+          }
+        }
+      }
+    },
+    "24小时制" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 Hours"
+          }
+        }
+      }
+    },
+    "30天" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 Days"
+          }
+        }
+      }
+    },
+    "90天" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "90 Days"
+          }
+        }
+      }
+    },
+    "Base64 编码" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Base64 Encode"
+          }
+        }
+      }
+    },
+    "Base64 解密" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Base64 Decode"
+          }
+        }
+      }
+    },
+    "ClipboardX" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ClipboardX"
+          }
+        }
+      }
+    },
+    "GitHub 仓库" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub"
+          }
+        }
+      }
+    },
+    "Hero" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hero"
+          }
+        }
+      }
+    },
+    "Pop" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pop"
+          }
+        }
+      }
+    },
+    "Purr" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purr"
+          }
+        }
+      }
+    },
+    "Submarine" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Submarine"
+          }
+        }
+      }
+    },
+    "Tink" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tink"
+          }
+        }
+      }
+    },
+    "URL 编码" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL Encode"
+          }
+        }
+      }
+    },
+    "URL 解密" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL Decode"
+          }
+        }
+      }
+    },
+    "交互" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interaction"
+          }
+        }
+      }
+    },
+    "仅在双列网格模式下生效。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only applies in two-column grid mode."
+          }
+        }
+      }
+    },
+    "仅复制" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Only"
+          }
+        }
+      }
+    },
+    "优化完成" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optimization completed"
+          }
+        }
+      }
+    },
+    "优化完成，已处理 %lld 个数据库文件" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optimization completed. Processed %lld database files."
+          }
+        }
+      }
+    },
+    "使用随机间隔" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Random Interval"
+          }
+        }
+      }
+    },
+    "值越大，闪现淡入的渐隐/渐显越明显。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Higher values make the fade-in/out effect more noticeable."
+          }
+        }
+      }
+    },
+    "值越小速度越快，值越大动作更柔和。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lower values mean faster speed; higher values make the animation smoother."
+          }
+        }
+      }
+    },
+    "偏好设置..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        }
+      }
+    },
+    "关于" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About"
+          }
+        }
+      }
+    },
+    "关闭后，使用键盘(上下键)导览时，鼠标的光标移动不会抢走高亮焦点。纯键盘党建议关闭。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When disabled, mouse hover will not steal the focus while navigating with the keyboard. Recommended for keyboard-only users."
+          }
+        }
+      }
+    },
+    "内容编码后保留原内容" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Original Content After Encoding"
+          }
+        }
+      }
+    },
+    "列表显示风格" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "List Display Style"
+          }
+        }
+      }
+    },
+    "删除此记录" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Item"
+          }
+        }
+      }
+    },
+    "加入常用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to Favorites"
+          }
+        }
+      }
+    },
+    "加密 / 解密" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encrypt / Decrypt"
+          }
+        }
+      }
+    },
+    "单行列表" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Single-Line List"
+          }
+        }
+      }
+    },
+    "历史保留时长" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History Retention"
+          }
+        }
+      }
+    },
+    "历史记录" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History"
+          }
+        }
+      }
+    },
+    "历史记录上限: %lld 条" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History Limit: %lld items"
+          }
+        }
+      }
+    },
+    "双击修饰键呼出窗口" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double-Click Modifier Key to Toggle Clipboard Window"
+          }
+        }
+      }
+    },
+    "双击按键:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key:"
+          }
+        }
+      }
+    },
+    "双列卡片高度: %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Two-Column Card Height: %lld"
+          }
+        }
+      }
+    },
+    "双列网格" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Two-Column Grid"
+          }
+        }
+      }
+    },
+    "取消" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
+    "取消固定" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unpin"
+          }
+        }
+      }
+    },
+    "取消常用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove from Favorites"
+          }
+        }
+      }
+    },
+    "合并" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge"
+          }
+        }
+      }
+    },
+    "合并重复纯文本" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge duplicate plain text"
+          }
+        }
+      }
+    },
+    "启用常用项" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Favorites"
+          }
+        }
+      }
+    },
+    "启用打字机模式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Typewriter Mode"
+          }
+        }
+      }
+    },
+    "启用敏感信息检测" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Sensitive Information Detection"
+          }
+        }
+      }
+    },
+    "启用窗口淡入淡出动画" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable window fade animation"
+          }
+        }
+      }
+    },
+    "启用长按快捷键呼出窗口" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Long-Press Shortcut"
+          }
+        }
+      }
+    },
+    "唤出快捷键:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activation Shortcut:"
+          }
+        }
+      }
+    },
+    "固定在顶部" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pin to Top"
+          }
+        }
+      }
+    },
+    "在下方列表中的应用程序里复制内容时，ClipboardX 将会忽略记录。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ClipboardX will ignore items copied from the applications in the list below."
+          }
+        }
+      }
+    },
+    "在顶部菜单栏显示图标" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Icon in Menu Bar"
+          }
+        }
+      }
+    },
+    "基础输入间隔: %@ s" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Base Typing Interval: %@ s"
+          }
+        }
+      }
+    },
+    "如果你需要完全关闭后台服务：" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you need to completely stop the background service:"
+          }
+        }
+      }
+    },
+    "存储空间占用：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage Usage: %@"
+          }
+        }
+      }
+    },
+    "导入备份" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Backup"
+          }
+        }
+      }
+    },
+    "导入失败" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import failed"
+          }
+        }
+      }
+    },
+    "导入完成，共新增 %lld 条" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import completed. Added %lld items."
+          }
+        }
+      }
+    },
+    "导出备份" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Backup"
+          }
+        }
+      }
+    },
+    "导出失败" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export failed"
+          }
+        }
+      }
+    },
+    "屏幕共享或录屏时隐藏悬浮窗" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide Floating Panel During Screen Sharing or Recording"
+          }
+        }
+      }
+    },
+    "已导出备份：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup exported: %@"
+          }
+        }
+      }
+    },
+    "已暂停监听" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listening Paused"
+          }
+        }
+      }
+    },
+    "已更新存储路径，建议重启应用以生效" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage path updated. Restart the app to apply changes."
+          }
+        }
+      }
+    },
+    "已迁移数据库文件并更新存储路径" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Database files migrated and storage path updated."
+          }
+        }
+      }
+    },
+    "常用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favorites"
+          }
+        }
+      }
+    },
+    "常规" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        }
+      }
+    },
+    "应用语言" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Language"
+          }
+        }
+      }
+    },
+    "建议将该快捷键设为 Control+V。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggested shortcut: Control+V."
+          }
+        }
+      }
+    },
+    "开启后，空格键用于预览当前键盘选中项；关闭后，空格键将直接触发该项粘贴。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When enabled, Spacebar previews the selected item; when disabled, Spacebar directly pastes it."
+          }
+        }
+      }
+    },
+    "开启后，被复用的历史记录会自动移动到列表最上方。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When enabled, reused history items will automatically move to the top of the list."
+          }
+        }
+      }
+    },
+    "开启后将尝试在文本输入光标处显示面板；若获取失败或未开启无障碍权限，将自动回退到鼠标位置。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When enabled, it will try to show the panel at the text cursor; if it fails or lacks accessibility permissions, it will fall back to the mouse location."
+          }
+        }
+      }
+    },
+    "开启复制音效" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable copy sound"
+          }
+        }
+      }
+    },
+    "开启富媒体记录 (图片与文件)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Rich Media Recording (Images and Files)"
+          }
+        }
+      }
+    },
+    "开机自动启动" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Launch at login"
+          }
+        }
+      }
+    },
+    "录入快捷键" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set Shortcut"
+          }
+        }
+      }
+    },
+    "录入按键" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record Key"
+          }
+        }
+      }
+    },
+    "快捷键" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shortcuts"
+          }
+        }
+      }
+    },
+    "快捷键呼出时跟随输入光标 (Caret)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Popup at Text Cursor (Caret)"
+          }
+        }
+      }
+    },
+    "打字机模式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Typewriter Mode"
+          }
+        }
+      }
+    },
+    "打字机面板快捷键:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Typewriter Panel Shortcut:"
+          }
+        }
+      }
+    },
+    "搜索剪贴板历史" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search Clipboard History"
+          }
+        }
+      }
+    },
+    "敏感记录保留时间" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sensitive Item Retention"
+          }
+        }
+      }
+    },
+    "敏感项内容打码显示" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mask Sensitive Item Content"
+          }
+        }
+      }
+    },
+    "数据库路径：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Database Path: %@"
+          }
+        }
+      }
+    },
+    "数据管理" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Management"
+          }
+        }
+      }
+    },
+    "无动画" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        }
+      }
+    },
+    "无匹配结果" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matching results"
+          }
+        }
+      }
+    },
+    "时间显示格式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time Display Format"
+          }
+        }
+      }
+    },
+    "显示剪贴内容时间" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Item Timestamp"
+          }
+        }
+      }
+    },
+    "显示悬浮窗底部暂停/继续监听按钮" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Pause/Resume Button at Bottom of Floating Window"
+          }
+        }
+      }
+    },
+    "显示秒数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Seconds"
+          }
+        }
+      }
+    },
+    "智能解密并复制" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smart Decrypt and Copy"
+          }
+        }
+      }
+    },
+    "暂停/恢复监听:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause/Resume Listening:"
+          }
+        }
+      }
+    },
+    "暂无剪贴板历史" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No clipboard history"
+          }
+        }
+      }
+    },
+    "暂无可用于打字机模式的纯文本记录" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No plain-text items available for typewriter mode"
+          }
+        }
+      }
+    },
+    "更改存储位置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Storage Location"
+          }
+        }
+      }
+    },
+    "未设置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Set"
+          }
+        }
+      }
+    },
+    "检查更新" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check for updates"
+          }
+        }
+      }
+    },
+    "永久保留" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep forever"
+          }
+        }
+      }
+    },
+    "浮动动画速度: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Float Animation Speed: %@"
+          }
+        }
+      }
+    },
+    "浮动飞升" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Float Up"
+          }
+        }
+      }
+    },
+    "淡入淡出时长: %lld ms" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fade Duration: %lld ms"
+          }
+        }
+      }
+    },
+    "清理冗余数据并优化存储" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean Redundant Data and Optimize Storage"
+          }
+        }
+      }
+    },
+    "清理缓存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Cache"
+          }
+        }
+      }
+    },
+    "清空" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear"
+          }
+        }
+      }
+    },
+    "清空全部记录前需二次确认" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Require confirmation before clearing all records"
+          }
+        }
+      }
+    },
+    "清空常用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Favorites"
+          }
+        }
+      }
+    },
+    "版本 %@ (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %1$@ (%2$@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "版本 %1$@ (%2$@)"
+          }
+        }
+      }
+    },
+    "状态栏图标" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menu Bar Icon"
+          }
+        }
+      }
+    },
+    "相对时间" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relative Time"
+          }
+        }
+      }
+    },
+    "确定清空?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Clear?"
+          }
+        }
+      }
+    },
+    "确定清空常用?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear all favorites?"
+          }
+        }
+      }
+    },
+    "确认" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm"
+          }
+        }
+      }
+    },
+    "空格键快速预览" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spacebar Quick Look"
+          }
+        }
+      }
+    },
+    "窗口动画时长: %lld ms" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window Animation Duration: %lld ms"
+          }
+        }
+      }
+    },
+    "立即销毁(0)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Destroy Immediately (0)"
+          }
+        }
+      }
+    },
+    "等待按键..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for key..."
+          }
+        }
+      }
+    },
+    "粘贴后将记录置顶" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bring to Top on Use"
+          }
+        }
+      }
+    },
+    "置顶动画风格" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bring-to-Top Animation Style"
+          }
+        }
+      }
+    },
+    "自动移除复制链接中的追踪参数 (如 utm_source, spm 等)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatically remove tracking parameters from copied links (e.g. utm_source, spm)."
+          }
+        }
+      }
+    },
+    "自定义追踪参数正则" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Tracking Parameter Regex"
+          }
+        }
+      }
+    },
+    "覆盖当前" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overwrite Current"
+          }
+        }
+      }
+    },
+    "记录图片" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record images"
+          }
+        }
+      }
+    },
+    "记录文件" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record files"
+          }
+        }
+      }
+    },
+    "记录生命周期与显示" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History Lifecycle and Display"
+          }
+        }
+      }
+    },
+    "设置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        }
+      }
+    },
+    "设置用于唤出剪贴板悬浮窗的全局快捷键。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set the global shortcut to summon the clipboard floating window."
+          }
+        }
+      }
+    },
+    "请选择将备份数据合并到当前记录，还是覆盖当前记录。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose whether to merge backup data into current records or overwrite current records."
+          }
+        }
+      }
+    },
+    "退出 ClipboardX" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit ClipboardX"
+          }
+        }
+      }
+    },
+    "退出应用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit"
+          }
+        }
+      }
+    },
+    "选择一条记录后将自动返回原窗口并开始逐字输入。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After selecting an item, ClipboardX returns to the previous window and starts typing automatically."
+          }
+        }
+      }
+    },
+    "选择导入方式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Import Mode"
+          }
+        }
+      }
+    },
+    "长按按键：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long-Press Key: %@"
+          }
+        }
+      }
+    },
+    "长按触发时长: %@ s" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long-Press Duration: %@ s"
+          }
+        }
+      }
+    },
+    "闪现淡入" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instant Fade"
+          }
+        }
+      }
+    },
+    "隐私" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy"
+          }
+        }
+      }
+    },
+    "隐私与安全" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy & Security"
+          }
+        }
+      }
+    },
+    "随机最大间隔: %@ s" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Random Max Interval: %@ s"
+          }
+        }
+      }
+    },
+    "随机最小间隔: %@ s" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Random Min Interval: %@ s"
+          }
+        }
+      }
+    },
+    "音效选择" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sound Effect"
+          }
+        }
+      }
+    },
+    "黑名单" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blacklist"
+          }
+        }
+      }
+    },
+    "鼠标悬浮打断键盘选中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hover interrupts keyboard selection"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.2"
+}
