@@ -16,16 +16,19 @@ enum PasteSimulation {
     ///
     /// 之所以使用 `cghidEventTap` 发送低层事件，是为了在面板窗口收起后，
     /// 将粘贴行为准确投递给先前的前台应用，而不是当前菜单栏进程自身。
-    static func simulatePaste() {
+    @discardableResult
+    static func simulatePaste() -> Bool {
+        guard PermissionStatusService.canPostKeyboardEvents else { return false }
         let source = CGEventSource(stateID: .hidSystemState)
         let flags = CGEventFlags.maskCommand
 
-        guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: ansiVKeyCode, keyDown: true) else { return }
+        guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: ansiVKeyCode, keyDown: true) else { return false }
         keyDown.flags = flags
         keyDown.post(tap: CGEventTapLocation.cghidEventTap)
 
-        guard let keyUp = CGEvent(keyboardEventSource: source, virtualKey: ansiVKeyCode, keyDown: false) else { return }
+        guard let keyUp = CGEvent(keyboardEventSource: source, virtualKey: ansiVKeyCode, keyDown: false) else { return false }
         keyUp.flags = flags
         keyUp.post(tap: CGEventTapLocation.cghidEventTap)
+        return true
     }
 }

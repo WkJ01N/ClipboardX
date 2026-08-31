@@ -1531,6 +1531,111 @@
         }
       }
     },
+    "全部来源" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "All Sources" } } }
+    },
+    "全部类型" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "All Types" } } }
+    },
+    "来源" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Source" } } }
+    },
+    "类型" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Type" } } }
+    },
+    "文本" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Text" } } }
+    },
+    "图片" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Image" } } }
+    },
+    "文件" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "File" } } }
+    },
+    "粘贴为纯文本" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Paste as Plain Text" } } }
+    },
+    "已复制；授予辅助功能权限后可自动粘贴" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Copied. Grant Accessibility permission to paste automatically." } } }
+    },
+    "无法解密此敏感记录" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "This sensitive record could not be decrypted" } } }
+    },
+    "选择备份方式" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Choose Backup Type" } } }
+    },
+    "普通备份会排除敏感记录；完整备份使用口令加密全部内容。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Standard backups exclude sensitive records. Complete backups encrypt everything with a password." } } }
+    },
+    "普通备份" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Standard Backup" } } }
+    },
+    "完整加密备份" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Complete Encrypted Backup" } } }
+    },
+    "设置备份口令" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Set Backup Password" } } }
+    },
+    "输入备份口令" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Enter Backup Password" } } }
+    },
+    "口令不会被保存，遗失后无法恢复备份。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The password is not saved. A lost password cannot be recovered." } } }
+    },
+    "口令（至少 8 个字符）" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Password (at least 8 characters)" } } }
+    },
+    "再次输入口令" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Enter password again" } } }
+    },
+    "备份文件格式无效" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The backup format is invalid" } } }
+    },
+    "备份口令不正确或文件已损坏" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The password is incorrect or the backup is damaged" } } }
+    },
+    "打开设置" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Open Settings" } } }
+    },
+    "需要输入监听权限才能在其他应用中识别长按或双击修饰键。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Input Monitoring permission is required to detect long-press or modifier double-tap shortcuts in other apps." } } }
+    },
+    "自动粘贴、光标定位和打字机模式需要辅助功能权限；未授权时仍会复制到剪贴板。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Automatic paste, caret positioning, and typewriter mode require Accessibility permission. Copy still works without it." } } }
+    },
+    "已记录新存储位置，将在重启后安全迁移" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The new storage location will be migrated safely after restart" } } }
+    },
+    "新位置将在下次启动时复制并校验：%@" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The new location will be copied and verified at next launch: %@" } } }
+    },
+    "存储恢复模式：%@" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Storage recovery mode: %@" } } }
+    },
+    "重启重试" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Restart and Retry" } } }
+    },
+    "导出诊断" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Export Diagnostics" } } }
+    },
+    "恢复最近快照" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Restore Latest Snapshot" } } }
+    },
+    "诊断信息已导出" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Diagnostics exported" } } }
+    },
+    "诊断信息导出失败" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Failed to export diagnostics" } } }
+    },
+    "恢复最近快照？" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Restore the latest snapshot?" } } }
+    },
+    "恢复将在下次启动前执行，当前数据库会先另存为恢复快照。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Restore runs before the next launch. The current database will first be archived as a recovery snapshot." } } }
+    },
+    "恢复并退出" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Restore and Quit" } } }
+    },
     "鼠标悬浮打断键盘选中" : {
       "localizations" : {
         "en" : {

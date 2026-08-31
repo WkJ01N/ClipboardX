@@ -116,6 +116,7 @@ final class PanelManager {
     }
 
     private func showPanel(mode: PanelMode) {
+        PasteCoordinator.shared.captureFrontmostTarget()
         if mode == .typewriter {
             let currentPID = ProcessInfo.processInfo.processIdentifier
             if let frontApp = NSWorkspace.shared.frontmostApplication,

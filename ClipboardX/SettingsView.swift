@@ -53,6 +53,8 @@ struct SettingsView: View {
     @AppStorage("hideOnScreenShare") private var hideOnScreenShare = true
     @AppStorage("maskSensitiveContent") private var maskSensitiveContent = true
     @AppStorage("customStorageURL") private var customStorageURL = ""
+    @AppStorage("pendingStorageURL") private var pendingStorageURL = ""
+    @AppStorage("lastStoreRecoveryError") private var lastStoreRecoveryError = ""
     @AppStorage("enableLongPressShortcut") private var enableLongPressShortcut = false
     @AppStorage("longPressDuration") private var longPressDuration = 0.5
     @AppStorage("longPressKeyKind") private var longPressKeyKind = LongPressShortcutKeyKind.modifier.rawValue
@@ -298,6 +300,16 @@ struct SettingsView: View {
 
                 VStack(alignment: .leading, spacing: 10) {
                     Toggle("启用长按快捷键呼出窗口", isOn: $enableLongPressShortcut)
+
+                    if (enableLongPressShortcut || enableDoubleClick) && !PermissionStatusService.canListenToGlobalKeyboard {
+                        permissionWarning(
+                            text: "需要输入监听权限才能在其他应用中识别长按或双击修饰键。",
+                            action: {
+                                _ = PermissionStatusService.requestInputMonitoring()
+                                PermissionStatusService.openPrivacySettings(anchor: "Privacy_ListenEvent")
+                            }
+                        )
+                    }
 
                     HStack(spacing: 10) {
                         Text("长按按键：\(longPressKeyDisplayName)")
@@ -604,6 +616,16 @@ struct SettingsView: View {
 
                     Toggle("敏感项内容打码显示", isOn: $maskSensitiveContent)
                     Toggle("屏幕共享或录屏时隐藏悬浮窗", isOn: $hideOnScreenShare)
+
+                    if !PermissionStatusService.canPostKeyboardEvents {
+                        permissionWarning(
+                            text: "自动粘贴、光标定位和打字机模式需要辅助功能权限；未授权时仍会复制到剪贴板。",
+                            action: {
+                                _ = PermissionStatusService.requestAccessibility()
+                                PermissionStatusService.openPrivacySettings()
+                            }
+                        )
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -615,6 +637,27 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
+
+                    if !pendingStorageURL.isEmpty {
+                        Text("新位置将在下次启动时复制并校验：\(pendingStorageURL)")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                    }
+
+                    if !lastStoreRecoveryError.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("存储恢复模式：\(lastStoreRecoveryError)")
+                                .font(.caption2)
+                                .foregroundStyle(.red)
+                            HStack(spacing: 8) {
+                                Button("重启重试") { NSApp.terminate(nil) }
+                                Button("导出诊断") { exportRecoveryDiagnostic() }
+                                Button("恢复最近快照") { queueLatestSnapshotRestore() }
+                                    .disabled(StoreRecoveryManager.latestSnapshot(for: activeStoreURL) == nil)
+                            }
+                            .controlSize(.small)
+                        }
+                    }
 
                     HStack(spacing: 8) {
                         Button("导出备份") {
@@ -807,25 +850,42 @@ struct SettingsView: View {
         panel.canCreateDirectories = true
 
         guard panel.runModal() == .OK, let folderURL = panel.url else { return }
-        let sourceFiles = discoverStoreFiles()
-        let fileManager = FileManager.default
-        var movedAny = false
+        pendingStorageURL = folderURL.path
+        dataActionStatusMessage = String(localized: "已记录新存储位置，将在重启后安全迁移")
+    }
 
-        for sourceURL in sourceFiles {
-            let destinationURL = folderURL.appendingPathComponent(sourceURL.lastPathComponent)
-            guard !fileManager.fileExists(atPath: destinationURL.path) else { continue }
-            do {
-                try fileManager.moveItem(at: sourceURL, to: destinationURL)
-                movedAny = true
-            } catch {
-                continue
-            }
+    private var activeStoreURL: URL {
+        guard !customStorageURL.isEmpty else { return ModelConfiguration().url }
+        return URL(fileURLWithPath: customStorageURL, isDirectory: true)
+            .appendingPathComponent("default.store")
+    }
+
+    private func exportRecoveryDiagnostic() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue = "ClipboardX-Diagnostic.json"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let data = try StoreRecoveryManager.diagnosticData(
+                error: lastStoreRecoveryError, storeURL: activeStoreURL
+            )
+            try data.write(to: url, options: [.atomic])
+            dataActionStatusMessage = String(localized: "诊断信息已导出")
+        } catch {
+            dataActionStatusMessage = String(localized: "诊断信息导出失败")
         }
+    }
 
-        customStorageURL = folderURL.path
-        dataActionStatusMessage = movedAny
-            ? String(localized: "已迁移数据库文件并更新存储路径")
-            : String(localized: "已更新存储路径，建议重启应用以生效")
+    private func queueLatestSnapshotRestore() {
+        guard let snapshot = StoreRecoveryManager.latestSnapshot(for: activeStoreURL) else { return }
+        let alert = NSAlert()
+        alert.messageText = String(localized: "恢复最近快照？")
+        alert.informativeText = String(localized: "恢复将在下次启动前执行，当前数据库会先另存为恢复快照。")
+        alert.addButton(withTitle: String(localized: "恢复并退出"))
+        alert.addButton(withTitle: String(localized: "取消"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        StoreRecoveryManager.queueRestore(snapshotURL: snapshot)
+        NSApp.terminate(nil)
     }
 
     @MainActor
@@ -979,6 +1039,7 @@ struct SettingsView: View {
         let descriptor = FetchDescriptor<ClipboardItem>()
         if let allItems = try? modelContext.fetch(descriptor) {
             for item in allItems where !item.isPinned {
+                PayloadStore.shared.remove(relativePath: item.payloadRelativePath)
                 modelContext.delete(item)
             }
             try? modelContext.save()
@@ -1099,6 +1160,21 @@ struct SettingsView: View {
         }
         shortcutDisplayText = next
     }
+
+    private func permissionWarning(text: LocalizedStringKey, action: @escaping () -> Void) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("打开设置", action: action)
+                .controlSize(.small)
+        }
+        .padding(8)
+        .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+    }
 }
 
 private enum ShortcutRecordingTarget: Equatable, Hashable, CaseIterable {
@@ -1128,4 +1204,3 @@ private enum ShortcutRecordingTarget: Equatable, Hashable, CaseIterable {
         }
     }
 }
-

@@ -43,6 +43,7 @@ struct HistoryListItemView: View {
     let onActivate: () -> Void
     /// “仅复制”动作（只写回剪贴板，不触发粘贴链路）。
     let onCopyOnly: () -> Void
+    let onPastePlainText: () -> Void
 
     /// 鼠标是否悬浮在当前卡片上。
     @State private var isHovering = false
@@ -133,10 +134,11 @@ struct HistoryListItemView: View {
     }
 
     private var displayContentText: String {
+        let resolved = ClipboardContentResolver.text(for: item)
         guard item.itemType == "text", item.isSensitive, maskSensitiveContent else {
-            return localizedContentText
+            return item.itemType == "text" ? resolved : localizedContentText
         }
-        return maskedSensitiveText(item.content)
+        return resolved.isEmpty ? "••••••••" : String(repeating: "•", count: min(max(resolved.count, 8), 24))
     }
 
     private func maskedSensitiveText(_ text: String) -> String {
@@ -170,11 +172,19 @@ struct HistoryListItemView: View {
                                 }
                         }
                     } else if item.itemType == "file" {
+                        let paths = item.filePaths
+                        let missingCount = paths.filter { !FileManager.default.fileExists(atPath: $0) }.count
                         HStack(spacing: 6) {
-                            Image(systemName: "doc.fill")
-                            Text((item.content as NSString).lastPathComponent)
+                            Image(systemName: missingCount > 0 ? "exclamationmark.triangle.fill" : "doc.fill")
+                                .foregroundStyle(missingCount > 0 ? Color.orange : Color.secondary)
+                            Text(((paths.first ?? item.content) as NSString).lastPathComponent)
                                 .lineLimit(2)
                                 .multilineTextAlignment(.leading)
+                            if paths.count > 1 {
+                                Text("+\(paths.count - 1)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     } else {
                         Text(displayContentText)
@@ -220,6 +230,12 @@ struct HistoryListItemView: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
+                    if let sourceName = item.sourceAppName {
+                        Text(sourceName)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, minHeight: fixedHeight, maxHeight: fixedHeight, alignment: .topLeading)
@@ -227,10 +243,10 @@ struct HistoryListItemView: View {
             .padding(12)
             .background(cardBackground)
             .cornerRadius(8)
-            .overlay(
+            .overlay {
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(strokeColor, lineWidth: 1.5)
-            )
+            }
             .scaleEffect(scale)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovering)
             .animation(.easeOut(duration: 0.15), value: isSelected)
@@ -270,6 +286,10 @@ struct HistoryListItemView: View {
 
             if item.itemType == "text" {
                 Divider()
+
+                Button(action: onPastePlainText) {
+                    Label("粘贴为纯文本", systemImage: "textformat")
+                }
 
                 Menu {
                     if let autoDecrypted = CryptoManager.autoDecrypt(item.content) {
@@ -329,6 +349,7 @@ struct HistoryListItemView: View {
             }
 
             Button(role: .destructive) {
+                PayloadStore.shared.remove(relativePath: item.payloadRelativePath)
                 modelContext.delete(item)
                 try? modelContext.save()
             } label: {
@@ -341,11 +362,13 @@ struct HistoryListItemView: View {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+        pasteboard.setString("true", forType: NSPasteboard.PasteboardType("com.clipboardx.internal"))
     }
 
     private func transformAndCopy(_ text: String) {
         writeToPasteboard(text)
         guard !keepOriginalAfterTransform else { return }
+        PayloadStore.shared.remove(relativePath: item.payloadRelativePath)
         modelContext.delete(item)
         try? modelContext.save()
     }

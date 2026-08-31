@@ -20,6 +20,8 @@ struct HistoryListView: View {
     /// 快捷键面板与菜单栏弹窗的列表顶部留白分离配置，便于分别微调。
     private let panelListTopPadding: CGFloat = 6
     private let menuPopupListTopPadding: CGFloat = 3
+    /// 快捷键悬浮面板没有搜索框，筛选栏需要自行保留顶部呼吸空间。
+    private let panelFilterTopPadding: CGFloat = 10
     /// 顶部栏弹窗中搜索栏距离顶部的留白，便于单独微调。
     private let menuPopupSearchTopPadding: CGFloat = 11
 
@@ -50,6 +52,9 @@ struct HistoryListView: View {
     @State private var keyDownMonitor: Any?
     /// Quick Look 预览中的记录 ID；`nil` 表示未展示预览层。
     @State private var quickLookItemID: UUID?
+    @State private var pasteStatusMessage: String?
+    @State private var selectedKind: ClipboardItemKind?
+    @State private var selectedSourceBundleID: String?
 
     /// 是否在复用记录后将其置顶。
     @AppStorage("bringToTopOnUse") private var bringToTopOnUse = true
@@ -94,9 +99,17 @@ struct HistoryListView: View {
         let tabFiltered = favoritesEnabled
             ? modeBase.filter { selectedTab == .history ? !$0.isFavorite : $0.isFavorite }
             : modeBase
+        let kindFiltered = tabFiltered.filter { selectedKind == nil || $0.kind == selectedKind }
+        let sourceFiltered = kindFiltered.filter {
+            selectedSourceBundleID == nil || $0.sourceBundleIdentifier == selectedSourceBundleID
+        }
         let searchFiltered = trimmed.isEmpty
-            ? tabFiltered
-            : tabFiltered.filter { $0.content.localizedCaseInsensitiveContains(trimmed) }
+            ? sourceFiltered
+            : sourceFiltered.filter {
+                ClipboardContentResolver.text(for: $0).localizedCaseInsensitiveContains(trimmed)
+                    || ($0.sourceAppName?.localizedCaseInsensitiveContains(trimmed) ?? false)
+                    || $0.filePaths.contains(where: { $0.localizedCaseInsensitiveContains(trimmed) })
+            }
         return searchFiltered.sorted {
             if $0.isPinned != $1.isPinned {
                 return $0.isPinned && !$1.isPinned
@@ -114,6 +127,7 @@ struct HistoryListView: View {
             if !isFromPanel {
                 searchField
             }
+            filterBar
             if favoritesEnabled {
                 tabPicker
             }
@@ -177,7 +191,9 @@ struct HistoryListView: View {
             return .handled
         }
         .onKeyPress(.escape, phases: .down) { _ in handleEscapeKey() }
-        .onKeyPress(.return, phases: .down) { _ in handleReturnKey() }
+        .onKeyPress(.return, phases: .down) { press in
+            press.modifiers.contains(.shift) ? handlePlainTextReturnKey() : handleReturnKey()
+        }
         .onAppear {
             if isFromPanel {
                 isListFocused = true
@@ -276,6 +292,43 @@ struct HistoryListView: View {
         .padding(.horizontal, 10)
         .padding(.top, isTypewriterMode ? 4 : (isFromPanel ? 10 : 0))
         .padding(.bottom, isTypewriterMode ? 2 : 6)
+    }
+
+    private var availableSources: [(id: String, name: String)] {
+        var seen = Set<String>()
+        return items.compactMap { item in
+            guard let id = item.sourceBundleIdentifier, seen.insert(id).inserted else { return nil }
+            return (id, item.sourceAppName ?? id)
+        }.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    private var filterBar: some View {
+        HStack(spacing: 6) {
+            Picker("类型", selection: $selectedKind) {
+                Text("全部类型").tag(ClipboardItemKind?.none)
+                Text("文本").tag(ClipboardItemKind?.some(.text))
+                Text("图片").tag(ClipboardItemKind?.some(.image))
+                Text("文件").tag(ClipboardItemKind?.some(.file))
+            }
+            Picker("来源", selection: $selectedSourceBundleID) {
+                Text("全部来源").tag(String?.none)
+                ForEach(availableSources, id: \.id) { source in
+                    Text(source.name).tag(String?.some(source.id))
+                }
+            }
+            if selectedKind != nil || selectedSourceBundleID != nil {
+                Button {
+                    selectedKind = nil
+                    selectedSourceBundleID = nil
+                } label: { Image(systemName: "xmark.circle.fill") }
+                    .buttonStyle(.plain)
+            }
+        }
+        .labelsHidden()
+        .controlSize(.small)
+        .padding(.horizontal, 10)
+        .padding(.top, isFromPanel && !isTypewriterMode ? panelFilterTopPadding : 0)
+        .padding(.bottom, 4)
     }
 
     private var typewriterHintHeader: some View {
@@ -381,6 +434,9 @@ struct HistoryListView: View {
             },
             onCopyOnly: {
                 copyToPasteboard(item: item)
+            },
+            onPastePlainText: {
+                activateItem(item, plainText: true)
             }
         )
         .id(item.id)
@@ -412,6 +468,13 @@ struct HistoryListView: View {
 
     /// 底部工具栏（清空与行内确认）。
     private var toolbar: some View {
+        VStack(spacing: 4) {
+        if let pasteStatusMessage {
+            Text(pasteStatusMessage)
+                .font(.caption2)
+                .foregroundStyle(.orange)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
         HStack {
             if isFromPanel {
                 if !showClearConfirmation {
@@ -505,6 +568,7 @@ struct HistoryListView: View {
                 .keyboardShortcut(.delete, modifiers: .command)
             }
         }
+        }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(Color.black.opacity(0.02))
@@ -590,6 +654,16 @@ struct HistoryListView: View {
         return .handled
     }
 
+    private func handlePlainTextReturnKey() -> KeyPress.Result {
+        let id = selectedItemID ?? filteredItems.first?.id
+        guard let id,
+              let item = filteredItems.first(where: { $0.id == id }),
+              item.kind == .text
+        else { return .ignored }
+        activateItem(item, plainText: true)
+        return .handled
+    }
+
     /// 通过索引激活条目（用于 Cmd+数字直达），先给短暂高亮反馈再执行粘贴。
     private func activateItem(at index: Int) {
         guard filteredItems.indices.contains(index) else { return }
@@ -604,20 +678,24 @@ struct HistoryListView: View {
     }
 
     /// 激活历史项：写回剪贴板，并按入口上下文执行粘贴/置顶策略。
-    private func activateItem(_ item: ClipboardItem) {
+    private func activateItem(_ item: ClipboardItem, plainText: Bool = false) {
         if isTypewriterMode, let onTypewriterSelect, item.itemType == "text" {
             resetSelectionState()
             onTypewriterSelect(item.content)
             return
         }
         resetSelectionState()
-        copyToPasteboard(item: item)
+        copyToPasteboard(item: item, forcePlainText: plainText)
 
         if isFromPanel {
+            guard PasteCoordinator.shared.canPasteAutomatically else {
+                pasteStatusMessage = String(localized: "已复制；授予辅助功能权限后可自动粘贴")
+                return
+            }
             NSApp.hide(nil)
             NotificationCenter.default.post(name: .hidePanelNotification, object: nil)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                PasteSimulation.simulatePaste()
+                PasteCoordinator.shared.pasteIntoCapturedTarget()
             }
         } else {
             if bringToTopOnUse {
@@ -659,16 +737,23 @@ struct HistoryListView: View {
     }
 
     /// 按记录类型将内容写回系统剪贴板，并打上内部标记避免监听回环。
-    func copyToPasteboard(item: ClipboardItem) {
+    func copyToPasteboard(item: ClipboardItem, forcePlainText: Bool = false) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        if item.itemType == "image", let data = item.itemData {
-            pasteboard.setData(data, forType: .tiff)
+        if item.itemType == "image", !forcePlainText {
+            let payloadType = NSPasteboard.PasteboardType(
+                item.payloadTypeIdentifier ?? NSPasteboard.PasteboardType.tiff.rawValue
+            )
+            if let data = item.itemData {
+                pasteboard.setData(data, forType: payloadType)
+            } else if let relativePath = item.payloadRelativePath {
+                let loaded = try? PayloadStore.shared.read(relativePath: relativePath)
+                if let loaded { pasteboard.setData(loaded, forType: payloadType) }
+            }
         } else if item.itemType == "file" {
-            let fileURL = URL(fileURLWithPath: item.content)
-            pasteboard.writeObjects([fileURL as NSURL])
+            pasteboard.writeObjects(item.filePaths.map { URL(fileURLWithPath: $0) as NSURL })
         } else {
-            pasteboard.setString(item.content, forType: .string)
+            pasteboard.setString(ClipboardContentResolver.text(for: item), forType: .string)
         }
 
         let internalMarkerType = NSPasteboard.PasteboardType("com.clipboardx.internal")
@@ -680,6 +765,7 @@ struct HistoryListView: View {
         NSPasteboard.general.clearContents()
 
         for item in items where !item.isPinned && (!favoritesEnabled || !item.isFavorite) {
+            PayloadStore.shared.remove(relativePath: item.payloadRelativePath)
             modelContext.delete(item)
         }
 

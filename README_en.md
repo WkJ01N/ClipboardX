@@ -1,61 +1,36 @@
 # ClipboardX
 
-A geek-tier, fully native clipboard manager for macOS. Built with SwiftData and SwiftUI. 100% local, secure, and incredibly powerful.
+A native, local-first clipboard manager for macOS 15 and later, built with SwiftUI, SwiftData, and AppKit.
 
-<a href="./README.md">简体中文</a> | English
+[简体中文](./README.md) | English
 
-### 🔒 Extreme Privacy & Security
-- **Anti-Screen-Share Stealth**: When enabled, the ClipboardX window becomes completely invisible to screen recording apps (Zoom, Teams, OBS, etc.), preventing accidental leaks.
-- **Sensitive Data Auto-Destruct**: Automatically detects API Keys, ID numbers, and Credit Cards via Regex. Marks them with a 🔒 and permanently deletes them after a custom short period (e.g., 1 minute).
-- **URL Tracker Stripper**: Automatically purges tracking parameters (like `utm_*`, `vd_source`, `si`) from copied links. Supports deep extraction from mixed text and customizable Regex rules.
-- **Global Pause**: Instantly halt all clipboard monitoring via the menu bar or a global shortcut.
+## Features
 
-### ⌨️ Hardcore Productivity
-- **Typewriter Mode (Simulation Paste)**: A dedicated text-only panel that simulates physical hardware keystrokes using `CGEvent`. Perfect for bypassing strict "pasting disabled" websites and remote desktop environments.
-- **Crypto Assistant**: Right-click to Encode/Decode text using Base64 or URL formats. Features a "Smart Decrypt" button to instantly restore obscured data.
-- **Grid View & 2D Navigation**: Switch between the classic list and a new high-density Dual-Column Grid. The underlying keyboard engine has been rewritten so you can navigate flawlessly using Up/Down/Left/Right arrows.
-- **Advanced Activation**: Summon the panel using standard shortcuts, **Double-Click Modifiers** (e.g., double-tap Option ⌥), or **Long-Press Activation**.
+- Capture, search, and preview text, common image formats, and multi-file clipboard entries.
+- Filter by content type or source app, with source and missing-file indicators.
+- Open via a global shortcut, modifier double-tap, or key long-press; navigate by keyboard and Quick Look.
+- Press `Enter` to paste or `Shift+Enter` to paste plain text. Without Accessibility access, ClipboardX safely falls back to copy-only.
+- Sensitive text is encrypted at rest using AES-GCM with a Keychain-managed key and expires according to your retention setting.
+- Image payloads live beside the database in `Payloads`, keeping history queries lightweight.
+- Standard JSON backups exclude sensitive entries; complete backups use a password, PBKDF2-HMAC-SHA256, and AES-GCM.
+- Versioned data migration creates a recovery snapshot before upgrading. Storage moves are copied and verified on restart.
 
-### 💾 Full Data Mastery
-- **Favorites System**: Star your most used snippets. Favorited items are kept forever and are immune to the database's auto-cleanup cycle.
-- **Import / Export**: Backup your entire clipboard history to a JSON file. Supports "Merge" and "Overwrite" import modes.
-- **Custom Storage Path**: Move your `.store` database file anywhere you like (e.g., iCloud Drive) for cross-device syncing or deep customization.
+## Install
 
-## 📥 Download & Installation
+Download ClipboardX from [Releases](https://github.com/WkJ01N/ClipboardX/releases) and move it to Applications. If macOS cannot verify the developer, Control-click the app and choose Open, or use **System Settings → Privacy & Security → Open Anyway**.
 
-Download the latest version from the [Releases](https://github.com/WkJ01N/ClipboardX/releases) page.
+Do not disable Gatekeeper globally. ClipboardX does not require the “Allow apps from anywhere” system policy.
 
-Since the author cannot afford an Apple Developer Program membership, the app is not code-signed. You will need to bypass macOS Gatekeeper:
-1. Open **System Settings** -> **Privacy & Security**, scroll to the bottom, and allow apps downloaded from **Anywhere**.
-2. **If you don't see the "Anywhere" option**, open **Terminal** and run:
-   ```bash
-   sudo spctl --master-disable
-   ```
-   Enter your password and check Settings again.
-3. Unzip the downloaded file and drag `ClipboardX.app` into your **Applications** folder, then double-click to launch.
+Automatic paste, caret positioning, and typewriter mode require Accessibility permission. Global long-press and modifier double-tap shortcuts may require Input Monitoring. ClipboardX shows permission status and links in Settings.
 
-> **⚠️ IMPORTANT:**
-> To use **"Typewriter Mode"** (keyboard simulation), you MUST go to System Settings -> Privacy & Security -> **Accessibility**, and check the box to allow ClipboardX to control your computer.
+## Development
 
-## 🕹 Shortcuts Guide
+```bash
+xcodebuild test -project ClipboardX.xcodeproj -scheme ClipboardX -destination 'platform=macOS' CODE_SIGN_IDENTITY=-
+```
 
-- **Summon ClipboardX**: Ctrl + V (Customizable, supports double-click/long-press)
-- **Quick Paste**: Cmd + 1 ~ 9
-- **Navigation**: Up / Down / Left / Right Arrows
-- **Quick Look (Preview)**: Spacebar
-- **Confirm Paste**: Enter
-- **Switch Tabs (History/Favorites)**: Tab
-- **Clear Unpinned Items**: Cmd + Delete -> Enter
-- **Close Panel**: ESC
+The deployment target is macOS 15. ClipboardX uses [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts).
 
-## 🛠 Tech Stack
+## License
 
-- **UI Framework**: SwiftUI (Dark mode, fluent animations, modular components)
-- **Database**: SwiftData (@Model & @Query, SQLite optimization)
-- **Low-Level APIs**: AppKit (NSPanel routing, sharingType stealth), CGEvent (Hardware-level event simulation)
-- **i18n**: String Catalog (Seamless EN/ZH-Hans switching)
-- **Dependencies**: KeyboardShortcuts
-
-## 📄 License
-
-This project is open-sourced under the MIT License. Feel free to use, modify, and distribute. If ClipboardX boosted your productivity, consider giving it a ⭐️ Star!
+ClipboardX is available under the [MIT License](./LICENSE). Deck was used only as product inspiration; no restricted Deck source is included.

@@ -15,6 +15,7 @@ struct QuickLookPreview: View {
     let item: ClipboardItem
     /// 关闭预览层回调。
     let onClose: () -> Void
+    @State private var previewImage: NSImage?
 
     var body: some View {
         ZStack {
@@ -26,10 +27,8 @@ struct QuickLookPreview: View {
                 }
 
             Group {
-                if item.itemType == "image",
-                   let data = item.itemData,
-                   let nsImage = NSImage(data: data) {
-                    Image(nsImage: nsImage)
+                if item.itemType == "image", let previewImage {
+                    Image(nsImage: previewImage)
                         .resizable()
                         .scaledToFit()
                         .padding(20)
@@ -38,7 +37,7 @@ struct QuickLookPreview: View {
                     VStack(spacing: 12) {
                         Image(systemName: "doc.fill")
                             .font(.system(size: 72))
-                        Text(item.content)
+                        Text(item.filePaths.joined(separator: "\n"))
                             .multilineTextAlignment(.center)
                             .textSelection(.enabled)
                     }
@@ -47,7 +46,7 @@ struct QuickLookPreview: View {
                     .padding(24)
                 } else {
                     ScrollView {
-                        Text(item.content)
+                        Text(ClipboardContentResolver.text(for: item))
                             .font(.body)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
@@ -58,6 +57,15 @@ struct QuickLookPreview: View {
                 }
             }
             .onTapGesture { }
+        }
+        .task(id: item.id) {
+            guard item.itemType == "image",
+                  let data = ClipboardContentResolver.imageData(for: item)
+            else {
+                previewImage = nil
+                return
+            }
+            previewImage = NSImage(data: data)
         }
     }
 }

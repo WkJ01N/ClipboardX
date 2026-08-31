@@ -9,7 +9,8 @@ import AppKit
 import Foundation
 import ImageIO
 
-actor ImageThumbnailManager {
+@MainActor
+final class ImageThumbnailManager {
     static let shared = ImageThumbnailManager()
 
     private let cache = NSCache<NSUUID, NSImage>()
@@ -24,7 +25,7 @@ actor ImageThumbnailManager {
             return cached
         }
 
-        guard item.itemType == "image", let data = item.itemData else {
+        guard item.itemType == "image", let data = ClipboardContentResolver.imageData(for: item) else {
             return nil
         }
 
