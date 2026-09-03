@@ -20,7 +20,7 @@ struct HistoryListView: View {
     /// 快捷键面板与菜单栏弹窗的列表顶部留白分离配置，便于分别微调。
     private let panelListTopPadding: CGFloat = 6
     private let menuPopupListTopPadding: CGFloat = 3
-    /// 快捷键悬浮面板没有搜索框，筛选栏需要自行保留顶部呼吸空间。
+    /// 快捷键悬浮面板没有搜索框；普通与打字机模式的筛选栏都需要顶部呼吸空间。
     private let panelFilterTopPadding: CGFloat = 10
     /// 顶部栏弹窗中搜索栏距离顶部的留白，便于单独微调。
     private let menuPopupSearchTopPadding: CGFloat = 11
@@ -327,7 +327,7 @@ struct HistoryListView: View {
         .labelsHidden()
         .controlSize(.small)
         .padding(.horizontal, 10)
-        .padding(.top, isFromPanel && !isTypewriterMode ? panelFilterTopPadding : 0)
+        .padding(.top, isFromPanel ? panelFilterTopPadding : 0)
         .padding(.bottom, 4)
     }
 
