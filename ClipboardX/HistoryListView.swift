@@ -700,12 +700,10 @@ struct HistoryListView: View {
                 pasteStatusMessage = String(localized: "已复制；原目标应用已关闭或无法识别，未执行自动粘贴。")
                 return
             }
-            NSApp.hide(nil)
-            NotificationCenter.default.post(name: .hidePanelNotification, object: nil)
+            NotificationCenter.default.post(name: .hidePanelForPasteNotification, object: nil)
             Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 50_000_000)
                 let result = await PasteCoordinator.shared.pasteIntoCapturedTarget()
-                guard result != .success else { return }
+                guard result != .eventsPosted else { return }
                 showPasteAttemptFailure(result)
             }
         } else {
@@ -791,13 +789,15 @@ struct HistoryListView: View {
     private func showPasteAttemptFailure(_ result: PasteAttemptResult) {
         let message: String
         switch result {
-        case .success: return
+        case .eventsPosted: return
         case .permissionDenied:
             message = String(localized: "内容已复制，但辅助功能权限当前不可用。")
         case .targetUnavailable:
             message = String(localized: "内容已复制，但原目标应用已经关闭。")
         case .targetActivationFailed:
             message = String(localized: "内容已复制，但无法重新激活原目标应用。")
+        case .targetActivationTimedOut:
+            message = String(localized: "内容已复制，但等待原目标应用恢复前台超时。")
         case .eventCreationFailed:
             message = String(localized: "内容已复制，但无法生成自动粘贴按键事件。")
         }

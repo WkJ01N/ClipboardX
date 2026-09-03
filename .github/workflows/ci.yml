@@ -22,7 +22,7 @@ jobs:
           -destination 'platform=macOS'
           CODE_SIGN_IDENTITY=-
       - name: Release build
-        run: ./scripts/build-release.sh
+        run: ALLOW_ADHOC_RELEASE=1 ./scripts/build-release.sh
       - name: Validate release artifacts
         run: |
           pkgutil --payload-files dist/ClipboardX.pkg | grep -q '^./Applications/ClipboardX.app/'

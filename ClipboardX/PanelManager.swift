@@ -36,6 +36,7 @@ final class PanelManager {
     private var outsideClickLocalMonitor: Any?
     /// 响应统一的隐藏通知，支持跨组件关闭面板。
     private var hidePanelNotificationObserver: NSObjectProtocol?
+    private var hidePanelForPasteNotificationObserver: NSObjectProtocol?
     /// 用于避免 show/hide 快速切换时旧动画 completion 污染新状态。
     private var animationGeneration: UInt = 0
     private var currentPanelMode: PanelMode = .normal
@@ -97,11 +98,23 @@ final class PanelManager {
                 self?.hidePanel()
             }
         }
+        hidePanelForPasteNotificationObserver = NotificationCenter.default.addObserver(
+            forName: .hidePanelForPasteNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.hidePanelForPaste()
+            }
+        }
     }
 
     deinit {
         if let hidePanelNotificationObserver {
             NotificationCenter.default.removeObserver(hidePanelNotificationObserver)
+        }
+        if let hidePanelForPasteNotificationObserver {
+            NotificationCenter.default.removeObserver(hidePanelForPasteNotificationObserver)
         }
     }
 
@@ -190,6 +203,7 @@ final class PanelManager {
 
     /// 隐藏面板并移除外部点击监测，防止监听器泄漏。
     func hidePanel() {
+        PasteCoordinator.shared.invalidateSession()
         stopOutsideClickMonitoring()
         animationGeneration &+= 1
         let generation = animationGeneration
@@ -212,6 +226,15 @@ final class PanelManager {
                 self.panel.alphaValue = 1
             }
         }
+    }
+
+    /// 粘贴链路需要先同步释放 key window，再将焦点交还目标应用。
+    /// 此处不执行淡出，也不销毁刚刚捕获的目标会话。
+    private func hidePanelForPaste() {
+        stopOutsideClickMonitoring()
+        animationGeneration &+= 1
+        panel.orderOut(nil)
+        panel.alphaValue = 1
     }
 
     /// 在显示与隐藏状态间切换面板可见性。

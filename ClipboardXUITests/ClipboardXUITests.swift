@@ -16,6 +16,21 @@ final class ClipboardXUITests: XCTestCase {
         assertSelectedCardMovesToTop(animationStyle: "闪现淡入")
     }
 
+    func testClosingLastWindowKeepsMenuBarAgentRunning() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-ui-testing", "-ui-testing-animation"]
+        app.launch()
+        let testWindow = app.windows["ClipboardX UI Tests"]
+        XCTAssertTrue(testWindow.waitForExistence(timeout: 5))
+
+        app.typeKey("w", modifierFlags: .command)
+        let closeSettled = expectation(description: "Window close settled")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { closeSettled.fulfill() }
+        wait(for: [closeSettled], timeout: 1)
+
+        XCTAssertNotEqual(app.state, .notRunning)
+    }
+
     private func assertSelectedCardMovesToTop(animationStyle: String) {
         let app = XCUIApplication()
         app.launchArguments += [

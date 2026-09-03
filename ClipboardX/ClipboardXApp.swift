@@ -12,8 +12,13 @@ import KeyboardShortcuts
 import SwiftData
 import SwiftUI
 
+final class ClipboardXApplicationDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+}
+
 @main
 struct ClipboardXApp: App {
+    @NSApplicationDelegateAdaptor(ClipboardXApplicationDelegate.self) private var applicationDelegate
     @StateObject private var appState = ClipboardAppState()
     @AppStorage("showMenuBarIcon") private var showMenuBarIcon = true
     @AppStorage("menuBarIconName") private var menuBarIconName = "scissors"
@@ -86,6 +91,7 @@ struct ClipboardXApp: App {
                 .environment(\.locale, appLocale)
         }
 
+#if DEBUG
         Window("ClipboardX UI Tests", id: "ui-testing") {
             HistoryListView(isFromPanel: false)
                 .modelContainer(appState.modelContainer)
@@ -94,6 +100,7 @@ struct ClipboardXApp: App {
         .defaultLaunchBehavior(
             ProcessInfo.processInfo.arguments.contains("-ui-testing-animation") ? .presented : .suppressed
         )
+#endif
     }
 }
 

@@ -1678,6 +1678,9 @@
     "内容已复制，但无法重新激活原目标应用。" : {
       "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The content was copied, but the original target app could not be reactivated." } } }
     },
+    "内容已复制，但等待原目标应用恢复前台超时。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The content was copied, but restoring the original target app timed out." } } }
+    },
     "内容已复制，但无法生成自动粘贴按键事件。" : {
       "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The content was copied, but the automatic paste keystroke could not be created." } } }
     },

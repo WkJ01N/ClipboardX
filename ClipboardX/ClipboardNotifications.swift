@@ -11,6 +11,9 @@ extension Notification.Name {
     /// 请求立即隐藏剪贴板历史悬浮窗（例如在面板内选中条目以粘贴前，先把焦点交回前台应用）。
     static let hidePanelNotification = Notification.Name("com.clipboardx.hidePanel")
 
+    /// 粘贴前立即收起面板，但保留本次粘贴会话直到事件投递结束。
+    static let hidePanelForPasteNotification = Notification.Name("com.clipboardx.hidePanelForPaste")
+
     /// 悬浮窗每次置于前台时请求将焦点放到搜索框。
     static let focusClipboardSearchNotification = Notification.Name("com.clipboardx.focusClipboardSearch")
 }
