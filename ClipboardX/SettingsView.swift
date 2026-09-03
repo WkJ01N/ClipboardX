@@ -240,7 +240,7 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
-                    Picker(LocalizedStringResource("历史保留时长"), selection: $retentionDays) {
+                    Picker("历史保留时长", selection: $retentionDays) {
                         Text(LocalizedStringResource("1天")).tag(1)
                         Text(LocalizedStringResource("7天")).tag(7)
                         Text(LocalizedStringResource("30天")).tag(30)
@@ -249,14 +249,14 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
 
-                    Picker(LocalizedStringResource("时间显示格式"), selection: $timeFormat) {
+                    Picker("时间显示格式", selection: $timeFormat) {
                         ForEach(TimeDisplayFormat.allCases) { format in
                             Text(format.localizedName).tag(format.rawValue)
                         }
                     }
                     .pickerStyle(.menu)
 
-                    Toggle(LocalizedStringResource("显示秒数"), isOn: $showSeconds)
+                    Toggle("显示秒数", isOn: $showSeconds)
                     Toggle("显示剪贴内容时间", isOn: $showItemTimestamp)
                 }
 
