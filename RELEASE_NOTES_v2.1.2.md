@@ -30,4 +30,9 @@
 - 构建版本：**213**
 - 最低系统版本：macOS 15
 
+## 🔐 SHA-256
+
+- `ClipboardX.pkg`: `d5d762b091db1c9995ecc617a5a5df2cba9917106e955058ba02ddfedd2d2473`
+- `ClipboardX.zip`: `220b960d8fa6bb0d9edb78d8f65818aac248692bfa9ff4efdf57ce3abac60f74`
+
 > 应用和安装包尚未经过 Apple 公证。首次运行时请右键选择“打开”，或在“系统设置 → 隐私与安全性”中点击“仍要打开”；无需全局关闭 Gatekeeper。
