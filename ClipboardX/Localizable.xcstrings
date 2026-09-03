@@ -1636,6 +1636,69 @@
     "恢复并退出" : {
       "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Restore and Quit" } } }
     },
+    "无法解密此敏感记录，未执行复制或粘贴。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "This sensitive item could not be decrypted. Nothing was copied or pasted." } } }
+    },
+    "图片数据已损坏或丢失，未执行粘贴。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The image data is damaged or missing. Paste was not attempted." } } }
+    },
+    "记录中的文件均已移动或删除。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "All files in this item have been moved or deleted." } } }
+    },
+    "有 %lld 个文件已移动或删除。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%lld file(s) have been moved or deleted." } } }
+    },
+    "无法将内容写入系统剪贴板。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The content could not be written to the system clipboard." } } }
+    },
+    "已复制；请在系统设置中授予辅助功能权限后重试自动粘贴。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Copied. Grant Accessibility permission in System Settings, then try automatic paste again." } } }
+    },
+    "已复制；原目标应用已关闭或无法识别，未执行自动粘贴。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Copied. The original target app is unavailable, so automatic paste was not attempted." } } }
+    },
+    "部分文件已丢失" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Some Files Are Missing" } } }
+    },
+    "有 %lld 个文件已移动或删除。是否仅复制其余 %lld 个文件？" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%lld file(s) have been moved or deleted. Copy only the remaining %lld file(s)?" } } }
+    },
+    "复制其余文件" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Copy Remaining Files" } } }
+    },
+    "自动粘贴未完成" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Automatic Paste Did Not Complete" } } }
+    },
+    "内容已复制，但辅助功能权限当前不可用。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The content was copied, but Accessibility permission is currently unavailable." } } }
+    },
+    "内容已复制，但原目标应用已经关闭。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The content was copied, but the original target app has quit." } } }
+    },
+    "内容已复制，但无法重新激活原目标应用。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The content was copied, but the original target app could not be reactivated." } } }
+    },
+    "内容已复制，但无法生成自动粘贴按键事件。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The content was copied, but the automatic paste keystroke could not be created." } } }
+    },
+    "无法保存记录变更：%@" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Could not save the item change: %@" } } }
+    },
+    "无法清空记录：%@" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Could not clear history: %@" } } }
+    },
+    "无法更新常用记录：%@" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Could not update favorites: %@" } } }
+    },
+    "无法删除记录：%@" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Could not delete the item: %@" } } }
+    },
+    "内容已复制，但无法删除原记录：%@" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The content was copied, but the original item could not be deleted: %@" } } }
+    },
+    "自动粘贴、光标定位和打字机模式需要辅助功能权限；若开关已开启但仍显示此提示，请移除 ClipboardX 后重新添加。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Automatic paste, caret positioning, and typewriter mode require Accessibility permission. If the toggle is already enabled, remove ClipboardX and add it again." } } }
+    },
     "鼠标悬浮打断键盘选中" : {
       "localizations" : {
         "en" : {

@@ -85,6 +85,15 @@ struct ClipboardXApp: App {
                 .modelContainer(appState.modelContainer)
                 .environment(\.locale, appLocale)
         }
+
+        Window("ClipboardX UI Tests", id: "ui-testing") {
+            HistoryListView(isFromPanel: false)
+                .modelContainer(appState.modelContainer)
+                .environment(\.locale, appLocale)
+        }
+        .defaultLaunchBehavior(
+            ProcessInfo.processInfo.arguments.contains("-ui-testing-animation") ? .presented : .suppressed
+        )
     }
 }
 
@@ -106,46 +115,59 @@ private final class ClipboardAppState: ObservableObject {
     @AppStorage("sensitiveRetentionMinutes") private var sensitiveRetentionMinutes = 5
 
     init() {
+        let isUITesting = ProcessInfo.processInfo.arguments.contains("-ui-testing")
         let customStoragePath = UserDefaults.standard.string(forKey: "customStorageURL") ?? ""
         let resolvedContainer: ModelContainer
         var resolvedStartupError: String?
         var resolvedStoreURL: URL?
-        do {
-            let initialConfiguration: ModelConfiguration
-            if let customStoreURL = Self.customStoreFileURL(from: customStoragePath) {
-                initialConfiguration = ModelConfiguration(url: customStoreURL)
-            } else {
-                initialConfiguration = ModelConfiguration()
-            }
-            try StoreRecoveryManager.applyPendingRestoreIfNeeded(currentStoreURL: initialConfiguration.url)
-            let storeURL = try StoreRecoveryManager.applyPendingLocationIfNeeded(currentStoreURL: initialConfiguration.url)
-            resolvedStoreURL = storeURL
-            _ = try StoreRecoveryManager.createMigrationSnapshotIfNeeded(storeURL: storeURL)
-            try PayloadStore.shared.configure(storeURL: storeURL)
-            let configuration = ModelConfiguration(url: storeURL)
-            resolvedContainer = try ModelContainer(
-                for: ClipboardItem.self,
-                migrationPlan: ClipboardMigrationPlan.self,
-                configurations: configuration
-            )
-        } catch let versionedMigrationError {
+        if isUITesting {
             do {
-                guard let resolvedStoreURL else { throw versionedMigrationError }
-                resolvedContainer = try StoreRecoveryManager.rebuildUnversionedStore(at: resolvedStoreURL)
-                UserDefaults.standard.removeObject(forKey: "lastStoreRecoveryError")
-            } catch let legacyMigrationError {
-                let message = "\(versionedMigrationError.localizedDescription)\n\(legacyMigrationError.localizedDescription)"
-                resolvedStartupError = message
-                UserDefaults.standard.set(message, forKey: "lastStoreRecoveryError")
-                let fallback = ModelConfiguration(isStoredInMemoryOnly: true)
+                resolvedContainer = try ModelContainer(
+                    for: ClipboardItem.self,
+                    migrationPlan: ClipboardMigrationPlan.self,
+                    configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+                )
+            } catch {
+                preconditionFailure("Unable to create UI test ModelContainer: \(error)")
+            }
+        } else {
+            do {
+                let initialConfiguration: ModelConfiguration
+                if let customStoreURL = Self.customStoreFileURL(from: customStoragePath) {
+                    initialConfiguration = ModelConfiguration(url: customStoreURL)
+                } else {
+                    initialConfiguration = ModelConfiguration()
+                }
+                try StoreRecoveryManager.applyPendingRestoreIfNeeded(currentStoreURL: initialConfiguration.url)
+                let storeURL = try StoreRecoveryManager.applyPendingLocationIfNeeded(currentStoreURL: initialConfiguration.url)
+                resolvedStoreURL = storeURL
+                _ = try StoreRecoveryManager.createMigrationSnapshotIfNeeded(storeURL: storeURL)
+                try PayloadStore.shared.configure(storeURL: storeURL)
+                let configuration = ModelConfiguration(url: storeURL)
+                resolvedContainer = try ModelContainer(
+                    for: ClipboardItem.self,
+                    migrationPlan: ClipboardMigrationPlan.self,
+                    configurations: configuration
+                )
+            } catch let versionedMigrationError {
                 do {
-                    resolvedContainer = try ModelContainer(
-                        for: ClipboardItem.self,
-                        migrationPlan: ClipboardMigrationPlan.self,
-                        configurations: fallback
-                    )
-                } catch {
-                    preconditionFailure("Unable to create recovery ModelContainer: \(error)")
+                    guard let resolvedStoreURL else { throw versionedMigrationError }
+                    resolvedContainer = try StoreRecoveryManager.rebuildUnversionedStore(at: resolvedStoreURL)
+                    UserDefaults.standard.removeObject(forKey: "lastStoreRecoveryError")
+                } catch let legacyMigrationError {
+                    let message = "\(versionedMigrationError.localizedDescription)\n\(legacyMigrationError.localizedDescription)"
+                    resolvedStartupError = message
+                    UserDefaults.standard.set(message, forKey: "lastStoreRecoveryError")
+                    let fallback = ModelConfiguration(isStoredInMemoryOnly: true)
+                    do {
+                        resolvedContainer = try ModelContainer(
+                            for: ClipboardItem.self,
+                            migrationPlan: ClipboardMigrationPlan.self,
+                            configurations: fallback
+                        )
+                    } catch {
+                        preconditionFailure("Unable to create recovery ModelContainer: \(error)")
+                    }
                 }
             }
         }
@@ -161,6 +183,14 @@ private final class ClipboardAppState: ObservableObject {
         }
         startupError = resolvedStartupError
 
+        if isUITesting {
+            clipboardMonitor.stopMonitoring()
+            if ProcessInfo.processInfo.arguments.contains("-ui-testing-animation") {
+                Self.seedAnimationFixtures(in: modelContainer.mainContext)
+            }
+            return
+        }
+
         captureSubscription = clipboardMonitor.$captureEventCount
             .dropFirst()
             .sink { [weak self] _ in
@@ -172,6 +202,23 @@ private final class ClipboardAppState: ObservableObject {
         migrateLegacyRecords()
         startCleanupTimer()
         startSensitiveCleanupTimer()
+    }
+
+    private static func seedAnimationFixtures(in context: ModelContext) {
+        let fixtures: [(UUID, String, TimeInterval)] = [
+            (UUID(uuidString: "00000000-0000-0000-0000-000000000001")!, "Animation fixture 1", -1),
+            (UUID(uuidString: "00000000-0000-0000-0000-000000000002")!, "Animation fixture 2", -2),
+            (UUID(uuidString: "00000000-0000-0000-0000-000000000003")!, "Animation fixture 3", -3),
+            (UUID(uuidString: "00000000-0000-0000-0000-000000000004")!, "Animation fixture 4", -4)
+        ]
+        for (id, content, offset) in fixtures {
+            context.insert(ClipboardItem(id: id, content: content, createdAt: Date().addingTimeInterval(offset)))
+        }
+        do {
+            try context.save()
+        } catch {
+            preconditionFailure("Unable to save UI test fixtures: \(error)")
+        }
     }
 
     deinit {

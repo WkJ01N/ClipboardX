@@ -4,6 +4,77 @@ import XCTest
 @testable import ClipboardX
 
 final class ClipboardXCoreTests: XCTestCase {
+    func testAutomaticPasteUsesAccessibilityTrustWithoutCGEventPreflight() {
+        XCTAssertTrue(PermissionStatusService.canPostKeyboardEvents(accessibilityTrusted: true))
+        XCTAssertFalse(PermissionStatusService.canPostKeyboardEvents(accessibilityTrusted: false))
+    }
+
+    @MainActor
+    func testPasteCoordinatorClearsStaleTarget() {
+        let coordinator = PasteCoordinator()
+        coordinator.updateCapturedTarget(frontmostPID: 123, ownPID: 999)
+        XCTAssertEqual(coordinator.targetPID, 123)
+        coordinator.updateCapturedTarget(frontmostPID: 999, ownPID: 999)
+        XCTAssertNil(coordinator.targetPID)
+        coordinator.updateCapturedTarget(frontmostPID: nil, ownPID: 999)
+        XCTAssertNil(coordinator.targetPID)
+    }
+
+    @MainActor
+    func testClipboardWriterRejectsMissingImagePayload() {
+        let item = ClipboardItem(content: "[Image]", itemType: ClipboardItemKind.image.rawValue)
+        XCTAssertThrowsError(try ClipboardWriter.prepare(item: item)) { error in
+            XCTAssertEqual(error as? ClipboardWriteError, .imagePayloadMissing)
+        }
+    }
+
+    @MainActor
+    func testClipboardWriterRejectsUndecryptableSensitiveText() {
+        let item = ClipboardItem(content: "", isSensitive: true)
+        XCTAssertThrowsError(try ClipboardWriter.prepare(item: item)) { error in
+            XCTAssertEqual(error as? ClipboardWriteError, .decryptionFailed)
+        }
+    }
+
+    @MainActor
+    func testClipboardWriterReportsPartialAndFullyMissingFiles() throws {
+        let item = ClipboardItem(content: "/exists", itemType: ClipboardItemKind.file.rawValue,
+                                 filePaths: ["/exists", "/missing"])
+        XCTAssertThrowsError(try ClipboardWriter.prepare(item: item, fileExists: { $0 == "/exists" })) { error in
+            XCTAssertEqual(error as? ClipboardWriteError,
+                           .filesMissing(existing: ["/exists"], missing: ["/missing"]))
+        }
+        XCTAssertEqual(
+            try ClipboardWriter.prepare(item: item, allowPartialFiles: true, fileExists: { $0 == "/exists" }),
+            .files(["/exists"])
+        )
+
+        let missing = ClipboardItem(content: "/gone", itemType: ClipboardItemKind.file.rawValue,
+                                    filePaths: ["/gone"])
+        XCTAssertThrowsError(try ClipboardWriter.prepare(item: missing, allowPartialFiles: true, fileExists: { _ in false }))
+    }
+
+    func testHistoryOrderingRespectsPinnedGroups() {
+        struct Entry { let id: UUID; let pinned: Bool }
+        let pinnedA = Entry(id: UUID(), pinned: true)
+        let pinnedB = Entry(id: UUID(), pinned: true)
+        let regularA = Entry(id: UUID(), pinned: false)
+        let regularB = Entry(id: UUID(), pinned: false)
+        let entries = [pinnedA, pinnedB, regularA, regularB]
+        XCTAssertTrue(HistoryOrdering.isFirstInGroup(pinnedA, in: entries, id: \.id, isPinned: \.pinned))
+        XCTAssertFalse(HistoryOrdering.isFirstInGroup(pinnedB, in: entries, id: \.id, isPinned: \.pinned))
+        XCTAssertTrue(HistoryOrdering.isFirstInGroup(regularA, in: entries, id: \.id, isPinned: \.pinned))
+        XCTAssertFalse(HistoryOrdering.isFirstInGroup(regularB, in: entries, id: \.id, isPinned: \.pinned))
+    }
+
+    func testReorderAnimationPhasesKeepItemHiddenUntilIdle() {
+        let id = UUID()
+        XCTAssertNil(HistoryReorderAnimationPhase.idle.hiddenItemID)
+        XCTAssertEqual(HistoryReorderAnimationPhase.fadingOut(id).hiddenItemID, id)
+        XCTAssertEqual(HistoryReorderAnimationPhase.reordering(id).hiddenItemID, id)
+        XCTAssertEqual(HistoryReorderAnimationPhase.fadingIn(id).hiddenItemID, id)
+    }
+
     func testPausedClipboardChangesAreConsumedWithoutCapturingAfterResume() {
         var gate = ClipboardChangeGate(lastChangeCount: 10)
         XCTAssertFalse(gate.consume(11, paused: true))

@@ -22,10 +22,16 @@ jobs:
           -destination 'platform=macOS'
           CODE_SIGN_IDENTITY=-
       - name: Release build
-        run: >-
-          xcodebuild build
-          -project ClipboardX.xcodeproj
-          -scheme ClipboardX
-          -configuration Release
-          -destination 'platform=macOS'
-          CODE_SIGNING_ALLOWED=NO
+        run: ./scripts/build-release.sh
+      - name: Validate release artifacts
+        run: |
+          pkgutil --payload-files dist/ClipboardX.pkg | grep -q '^./Applications/ClipboardX.app/'
+          unzip -t dist/ClipboardX.zip
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClipboardX-2.1.2
+          path: |
+            dist/ClipboardX.pkg
+            dist/ClipboardX.zip
+            dist/SHA256SUMS.txt

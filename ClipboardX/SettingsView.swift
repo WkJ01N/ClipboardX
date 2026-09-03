@@ -85,6 +85,8 @@ struct SettingsView: View {
     @State private var hasLoadedDatabaseSize = false
     @State private var shortcutDisplayText: [ShortcutRecordingTarget: String?] = [:]
     @State private var dataActionStatusMessage: String?
+    @State private var accessibilityGranted = PermissionStatusService.canPostKeyboardEvents
+    @State private var inputMonitoringGranted = PermissionStatusService.canListenToGlobalKeyboard
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
 
@@ -124,6 +126,10 @@ struct SettingsView: View {
         }
         .frame(width: 450)
         .frame(minHeight: 350)
+        .onAppear { refreshPermissionStatus() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshPermissionStatus()
+        }
     }
 
     private var generalTab: some View {
@@ -301,7 +307,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Toggle("启用长按快捷键呼出窗口", isOn: $enableLongPressShortcut)
 
-                    if (enableLongPressShortcut || enableDoubleClick) && !PermissionStatusService.canListenToGlobalKeyboard {
+                    if (enableLongPressShortcut || enableDoubleClick) && !inputMonitoringGranted {
                         permissionWarning(
                             text: "需要输入监听权限才能在其他应用中识别长按或双击修饰键。",
                             action: {
@@ -617,9 +623,9 @@ struct SettingsView: View {
                     Toggle("敏感项内容打码显示", isOn: $maskSensitiveContent)
                     Toggle("屏幕共享或录屏时隐藏悬浮窗", isOn: $hideOnScreenShare)
 
-                    if !PermissionStatusService.canPostKeyboardEvents {
+                    if !accessibilityGranted {
                         permissionWarning(
-                            text: "自动粘贴、光标定位和打字机模式需要辅助功能权限；未授权时仍会复制到剪贴板。",
+                            text: "自动粘贴、光标定位和打字机模式需要辅助功能权限；若开关已开启但仍显示此提示，请移除 ClipboardX 后重新添加。",
                             action: {
                                 _ = PermissionStatusService.requestAccessibility()
                                 PermissionStatusService.openPrivacySettings()
@@ -1174,6 +1180,11 @@ struct SettingsView: View {
         }
         .padding(8)
         .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func refreshPermissionStatus() {
+        accessibilityGranted = PermissionStatusService.canPostKeyboardEvents
+        inputMonitoringGranted = PermissionStatusService.canListenToGlobalKeyboard
     }
 }
 

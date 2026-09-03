@@ -17,11 +17,13 @@ A native, local-first clipboard manager for macOS 15 and later, built with Swift
 
 ## Install
 
-Download ClipboardX from [Releases](https://github.com/WkJ01N/ClipboardX/releases) and move it to Applications. If macOS cannot verify the developer, Control-click the app and choose Open, or use **System Settings → Privacy & Security → Open Anyway**.
+Download `ClipboardX.pkg` from [Releases](https://github.com/WkJ01N/ClipboardX/releases) and run the installer. It installs ClipboardX at `/Applications/ClipboardX.app`. The ZIP is a portable fallback and its app must be moved to Applications manually.
+
+The package is not signed with Developer ID or notarized. If macOS cannot verify it, Control-click the package and choose Open, or use **System Settings → Privacy & Security → Open Anyway**.
 
 Do not disable Gatekeeper globally. ClipboardX does not require the “Allow apps from anywhere” system policy.
 
-Automatic paste, caret positioning, and typewriter mode require Accessibility permission. Global long-press and modifier double-tap shortcuts may require Input Monitoring. ClipboardX shows permission status and links in Settings.
+Automatic paste, caret positioning, and typewriter mode require Accessibility permission. Global long-press and modifier double-tap shortcuts may require Input Monitoring. ClipboardX shows permission status and links in Settings. If permission remains unavailable after an update despite the toggle being enabled, remove ClipboardX from the permission list and add `/Applications/ClipboardX.app` again.
 
 ## Development
 

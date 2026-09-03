@@ -85,6 +85,7 @@ Dependencies/
 
 # Local build products
 *.app
+dist/
 
 # IDEs
 .idea/

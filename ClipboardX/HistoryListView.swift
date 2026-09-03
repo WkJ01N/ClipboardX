@@ -28,9 +28,6 @@ struct HistoryListView: View {
     /// SwiftData 上下文，用于更新排序时间、删除记录与写回状态。
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \ClipboardItem.createdAt, order: .reverse) private var items: [ClipboardItem]
-    /// 列表重排时的共享几何命名空间，用于平滑置顶动画。
-    @Namespace private var animationNamespace
-
     /// 搜索关键词（本地过滤）。
     @State private var searchText = ""
     @State private var selectedTab: TabSelection = .history
@@ -44,8 +41,8 @@ struct HistoryListView: View {
     @State private var isKeyboardMode = false
     /// 列表滚动代理，用于将选中项滚动到可见区域。
     @State private var listScrollProxy: ScrollViewProxy?
-    /// 当前执行淡出过渡的记录 ID（fade 置顶样式）。
-    @State private var fadingItemID: UUID?
+    @State private var reorderPhase: HistoryReorderAnimationPhase = .idle
+    @State private var reorderTask: Task<Void, Never>?
     /// 清空全部的行内确认态。
     @State private var showClearConfirmation = false
     /// 本地键盘监听句柄（用于 Cmd+数字直达）。
@@ -217,6 +214,7 @@ struct HistoryListView: View {
             }
         }
         .onDisappear {
+            cancelReorderAnimation()
             if let keyDownMonitor {
                 NSEvent.removeMonitor(keyDownMonitor)
                 self.keyDownMonitor = nil
@@ -230,6 +228,7 @@ struct HistoryListView: View {
             }
         }
         .onChange(of: selectedTab) {
+            cancelReorderAnimation()
             selectedItemID = nil
             isKeyboardMode = false
             quickLookItemID = nil
@@ -238,6 +237,7 @@ struct HistoryListView: View {
             }
         }
         .onChange(of: favoritesEnabled) {
+            cancelReorderAnimation()
             selectedTab = .history
             selectedItemID = nil
             isKeyboardMode = false
@@ -401,6 +401,7 @@ struct HistoryListView: View {
                             historyCard(for: item, index: index, fixedHeight: CGFloat(gridCardHeight))
                         }
                     }
+                    .animation(layoutReorderAnimation, value: filteredItems.map(\.id))
                     .padding(.horizontal, 8)
                     .padding(.top, listTopPadding)
                 } else {
@@ -409,6 +410,7 @@ struct HistoryListView: View {
                             historyCard(for: item, index: index, fixedHeight: nil)
                         }
                     }
+                    .animation(layoutReorderAnimation, value: filteredItems.map(\.id))
                     .padding(.top, listTopPadding)
                 }
             }
@@ -425,18 +427,20 @@ struct HistoryListView: View {
             isFromPanel: isFromPanel,
             isKeyboardMode: $isKeyboardMode,
             isSelected: selectedItemID == item.id,
-            isFadingOut: fadingItemID == item.id,
-            namespace: animationNamespace,
+            isFadingOut: reorderPhase.hiddenItemID == item.id,
             item: item,
             fixedHeight: fixedHeight,
             onActivate: {
                 activateItem(item)
             },
             onCopyOnly: {
-                copyToPasteboard(item: item)
+                _ = copyToPasteboard(item: item)
             },
             onPastePlainText: {
                 activateItem(item, plainText: true)
+            },
+            onPersistenceError: { message in
+                pasteStatusMessage = message
             }
         )
         .id(item.id)
@@ -685,49 +689,124 @@ struct HistoryListView: View {
             return
         }
         resetSelectionState()
-        copyToPasteboard(item: item, forcePlainText: plainText)
+        guard copyToPasteboard(item: item, forcePlainText: plainText) else { return }
 
         if isFromPanel {
             guard PasteCoordinator.shared.canPasteAutomatically else {
-                pasteStatusMessage = String(localized: "已复制；授予辅助功能权限后可自动粘贴")
+                pasteStatusMessage = String(localized: "已复制；请在系统设置中授予辅助功能权限后重试自动粘贴。")
+                return
+            }
+            guard PasteCoordinator.shared.hasCapturedTarget else {
+                pasteStatusMessage = String(localized: "已复制；原目标应用已关闭或无法识别，未执行自动粘贴。")
                 return
             }
             NSApp.hide(nil)
             NotificationCenter.default.post(name: .hidePanelNotification, object: nil)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                PasteCoordinator.shared.pasteIntoCapturedTarget()
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 50_000_000)
+                let result = await PasteCoordinator.shared.pasteIntoCapturedTarget()
+                guard result != .success else { return }
+                showPasteAttemptFailure(result)
             }
         } else {
             if bringToTopOnUse {
-                switch animationStyle {
-                case .float:
-                    let response = max(0.20, min(0.80, floatAnimationResponse))
-                    withAnimation(.spring(response: response, dampingFraction: 0.8)) {
-                        item.createdAt = Date()
-                        try? modelContext.save()
-                    }
-                case .fade:
-                    let duration = max(0.05, min(0.40, fadeAnimationDuration))
-                    withAnimation(.easeOut(duration: duration)) {
-                        fadingItemID = item.id
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-                        var tx = Transaction()
-                        tx.animation = nil
-                        withTransaction(tx) {
-                            item.createdAt = Date()
-                            try? modelContext.save()
-                        }
-                        withAnimation(.easeIn(duration: duration)) {
-                            fadingItemID = nil
-                        }
-                    }
-                case .none:
-                    item.createdAt = Date()
-                    try? modelContext.save()
-                }
+                bringItemToTop(item)
             }
         }
+    }
+
+    private var layoutReorderAnimation: Animation? {
+        switch animationStyle {
+        case .float:
+            return .spring(response: max(0.20, min(0.80, floatAnimationResponse)), dampingFraction: 0.8)
+        case .fade:
+            return .easeInOut(duration: max(0.05, min(0.40, fadeAnimationDuration)))
+        case .none:
+            return nil
+        }
+    }
+
+    private func bringItemToTop(_ item: ClipboardItem) {
+        cancelReorderAnimation()
+        let alreadyFirstInGroup = HistoryOrdering.isFirstInGroup(
+            item,
+            in: filteredItems,
+            id: \.id,
+            isPinned: \.isPinned
+        )
+        let oldDate = item.createdAt
+
+        switch animationStyle {
+        case .float:
+            _ = persistReorder(item, oldDate: oldDate, animated: !alreadyFirstInGroup)
+        case .fade where !alreadyFirstInGroup:
+            let duration = max(0.05, min(0.40, fadeAnimationDuration))
+            reorderTask = Task { @MainActor in
+                withAnimation(.easeOut(duration: duration)) { reorderPhase = .fadingOut(item.id) }
+                try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+                guard !Task.isCancelled else { return }
+                reorderPhase = .reordering(item.id)
+                guard persistReorder(item, oldDate: oldDate, animated: true) else {
+                    reorderTask = nil
+                    return
+                }
+                try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+                guard !Task.isCancelled else { return }
+                reorderPhase = .fadingIn(item.id)
+                withAnimation(.easeIn(duration: duration)) { reorderPhase = .idle }
+                reorderTask = nil
+            }
+        case .fade, .none:
+            _ = persistReorder(item, oldDate: oldDate, animated: false)
+        }
+    }
+
+    @discardableResult
+    private func persistReorder(_ item: ClipboardItem, oldDate: Date, animated: Bool) -> Bool {
+        if animated, let animation = layoutReorderAnimation {
+            withAnimation(animation) { item.createdAt = Date() }
+        } else {
+            item.createdAt = Date()
+        }
+        do {
+            try modelContext.save()
+            return true
+        } catch {
+            modelContext.rollback()
+            item.createdAt = oldDate
+            withAnimation(.easeIn(duration: 0.1)) { reorderPhase = .idle }
+            pasteStatusMessage = String(localized: "无法保存记录变更：\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    private func cancelReorderAnimation() {
+        reorderTask?.cancel()
+        reorderTask = nil
+        if reorderPhase != .idle {
+            withAnimation(.easeIn(duration: 0.1)) { reorderPhase = .idle }
+        }
+    }
+
+    private func showPasteAttemptFailure(_ result: PasteAttemptResult) {
+        let message: String
+        switch result {
+        case .success: return
+        case .permissionDenied:
+            message = String(localized: "内容已复制，但辅助功能权限当前不可用。")
+        case .targetUnavailable:
+            message = String(localized: "内容已复制，但原目标应用已经关闭。")
+        case .targetActivationFailed:
+            message = String(localized: "内容已复制，但无法重新激活原目标应用。")
+        case .eventCreationFailed:
+            message = String(localized: "内容已复制，但无法生成自动粘贴按键事件。")
+        }
+        let alert = NSAlert()
+        alert.messageText = String(localized: "自动粘贴未完成")
+        alert.informativeText = message
+        alert.addButton(withTitle: String(localized: "好"))
+        NSApp.activate(ignoringOtherApps: true)
+        alert.runModal()
     }
 
     /// 重置键盘选中视觉状态，避免激活后高亮残留。
@@ -737,39 +816,56 @@ struct HistoryListView: View {
     }
 
     /// 按记录类型将内容写回系统剪贴板，并打上内部标记避免监听回环。
-    func copyToPasteboard(item: ClipboardItem, forcePlainText: Bool = false) {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        if item.itemType == "image", !forcePlainText {
-            let payloadType = NSPasteboard.PasteboardType(
-                item.payloadTypeIdentifier ?? NSPasteboard.PasteboardType.tiff.rawValue
-            )
-            if let data = item.itemData {
-                pasteboard.setData(data, forType: payloadType)
-            } else if let relativePath = item.payloadRelativePath {
-                let loaded = try? PayloadStore.shared.read(relativePath: relativePath)
-                if let loaded { pasteboard.setData(loaded, forType: payloadType) }
+    @discardableResult
+    func copyToPasteboard(item: ClipboardItem, forcePlainText: Bool = false) -> Bool {
+        do {
+            let payload = try ClipboardWriter.prepare(item: item, forcePlainText: forcePlainText)
+            try ClipboardWriter.write(payload)
+            pasteStatusMessage = nil
+            return true
+        } catch ClipboardWriteError.filesMissing(let existing, let missing) where !existing.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = String(localized: "部分文件已丢失")
+            alert.informativeText = String(localized: "有 \(missing.count) 个文件已移动或删除。是否仅复制其余 \(existing.count) 个文件？")
+            alert.addButton(withTitle: String(localized: "复制其余文件"))
+            alert.addButton(withTitle: String(localized: "取消"))
+            guard alert.runModal() == .alertFirstButtonReturn else { return false }
+            do {
+                let payload = try ClipboardWriter.prepare(
+                    item: item,
+                    forcePlainText: forcePlainText,
+                    allowPartialFiles: true
+                )
+                try ClipboardWriter.write(payload)
+                pasteStatusMessage = nil
+                return true
+            } catch {
+                pasteStatusMessage = error.localizedDescription
+                return false
             }
-        } else if item.itemType == "file" {
-            pasteboard.writeObjects(item.filePaths.map { URL(fileURLWithPath: $0) as NSURL })
-        } else {
-            pasteboard.setString(ClipboardContentResolver.text(for: item), forType: .string)
+        } catch {
+            pasteStatusMessage = error.localizedDescription
+            return false
         }
-
-        let internalMarkerType = NSPasteboard.PasteboardType("com.clipboardx.internal")
-        pasteboard.setString("true", forType: internalMarkerType)
     }
 
     /// 清空历史（保留固定项），并重置局部交互状态。
     private func clearAllHistory() {
         NSPasteboard.general.clearContents()
 
-        for item in items where !item.isPinned && (!favoritesEnabled || !item.isFavorite) {
-            PayloadStore.shared.remove(relativePath: item.payloadRelativePath)
+        let deletedItems = items.filter { !$0.isPinned && (!favoritesEnabled || !$0.isFavorite) }
+        let payloadPaths = deletedItems.compactMap(\.payloadRelativePath)
+        for item in deletedItems {
             modelContext.delete(item)
         }
-
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+            for path in payloadPaths { PayloadStore.shared.remove(relativePath: path) }
+        } catch {
+            modelContext.rollback()
+            pasteStatusMessage = String(localized: "无法清空记录：\(error.localizedDescription)")
+            return
+        }
         searchText = ""
         selectedItemID = nil
         isKeyboardMode = false
@@ -779,7 +875,13 @@ struct HistoryListView: View {
         for item in items where item.isFavorite {
             item.isFavorite = false
         }
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            pasteStatusMessage = String(localized: "无法更新常用记录：\(error.localizedDescription)")
+            return
+        }
         searchText = ""
         selectedItemID = nil
         isKeyboardMode = false

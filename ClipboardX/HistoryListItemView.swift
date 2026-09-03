@@ -33,8 +33,6 @@ struct HistoryListItemView: View {
     let isSelected: Bool
     /// 当前行是否处于淡出阶段（fade 动画）。
     let isFadingOut: Bool
-    /// 与列表共享的匹配几何命名空间。
-    let namespace: Namespace.ID
     /// 当前行对应的剪贴板数据实体。
     let item: ClipboardItem
     /// 固定卡片高度（双列网格模式下用于统一尺寸与点击区域）。
@@ -44,6 +42,7 @@ struct HistoryListItemView: View {
     /// “仅复制”动作（只写回剪贴板，不触发粘贴链路）。
     let onCopyOnly: () -> Void
     let onPastePlainText: () -> Void
+    let onPersistenceError: (String) -> Void
 
     /// 鼠标是否悬浮在当前卡片上。
     @State private var isHovering = false
@@ -252,10 +251,9 @@ struct HistoryListItemView: View {
             .animation(.easeOut(duration: 0.15), value: isSelected)
         }
         .buttonStyle(.plain)
-        .matchedGeometryEffect(id: item.id, in: namespace)
+        .accessibilityIdentifier("history-card-\(item.id.uuidString.lowercased())")
         .transition(.opacity)
         .opacity(isFadingOut ? 0 : 1)
-        .animation(.easeInOut(duration: 0.12), value: isFadingOut)
         .onHover { hovering in
             isHovering = hovering
             if hovering && hoverInterruptsKeyboard {
@@ -271,15 +269,17 @@ struct HistoryListItemView: View {
         }
         .contextMenu {
             Button {
+                let previous = item.isPinned
                 item.isPinned.toggle()
-                try? modelContext.save()
+                saveMutation(orRestore: { item.isPinned = previous })
             } label: {
                 Label(item.isPinned ? "取消固定" : "固定在顶部", systemImage: item.isPinned ? "pin.slash" : "pin")
             }
 
             Button {
+                let previous = item.isFavorite
                 item.isFavorite.toggle()
-                try? modelContext.save()
+                saveMutation(orRestore: { item.isFavorite = previous })
             } label: {
                 Label(item.isFavorite ? "取消常用" : "加入常用", systemImage: item.isFavorite ? "star.slash" : "star")
             }
@@ -349,9 +349,15 @@ struct HistoryListItemView: View {
             }
 
             Button(role: .destructive) {
-                PayloadStore.shared.remove(relativePath: item.payloadRelativePath)
+                let payloadPath = item.payloadRelativePath
                 modelContext.delete(item)
-                try? modelContext.save()
+                do {
+                    try modelContext.save()
+                    PayloadStore.shared.remove(relativePath: payloadPath)
+                } catch {
+                    modelContext.rollback()
+                    onPersistenceError(String(localized: "无法删除记录：\(error.localizedDescription)"))
+                }
             } label: {
                 Label("删除此记录", systemImage: "trash")
             }
@@ -368,8 +374,24 @@ struct HistoryListItemView: View {
     private func transformAndCopy(_ text: String) {
         writeToPasteboard(text)
         guard !keepOriginalAfterTransform else { return }
-        PayloadStore.shared.remove(relativePath: item.payloadRelativePath)
+        let payloadPath = item.payloadRelativePath
         modelContext.delete(item)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+            PayloadStore.shared.remove(relativePath: payloadPath)
+        } catch {
+            modelContext.rollback()
+            onPersistenceError(String(localized: "内容已复制，但无法删除原记录：\(error.localizedDescription)"))
+        }
+    }
+
+    private func saveMutation(orRestore restore: () -> Void) {
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            restore()
+            onPersistenceError(String(localized: "无法保存记录变更：\(error.localizedDescription)"))
+        }
     }
 }

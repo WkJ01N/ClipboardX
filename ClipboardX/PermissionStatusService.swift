@@ -3,8 +3,15 @@ import ApplicationServices
 import CoreGraphics
 
 enum PermissionStatusService {
+    /// Posting synthetic keyboard events is governed by Accessibility trust.
+    /// `CGPreflightPostEventAccess()` can remain false for an Accessibility-trusted
+    /// app on recent macOS releases, so it must not be combined with this check.
     static var canPostKeyboardEvents: Bool {
-        AXIsProcessTrusted() && CGPreflightPostEventAccess()
+        canPostKeyboardEvents(accessibilityTrusted: AXIsProcessTrusted())
+    }
+
+    static func canPostKeyboardEvents(accessibilityTrusted: Bool) -> Bool {
+        accessibilityTrusted
     }
 
     static var canListenToGlobalKeyboard: Bool {
@@ -31,24 +38,54 @@ enum PermissionStatusService {
 @MainActor
 final class PasteCoordinator {
     static let shared = PasteCoordinator()
-    private var targetPID: pid_t?
+    private(set) var targetPID: pid_t?
 
     func captureFrontmostTarget() {
         let ownPID = ProcessInfo.processInfo.processIdentifier
-        guard let app = NSWorkspace.shared.frontmostApplication,
-              app.processIdentifier != ownPID
-        else { return }
-        targetPID = app.processIdentifier
+        updateCapturedTarget(
+            frontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier,
+            ownPID: ownPID
+        )
+    }
+
+    func updateCapturedTarget(frontmostPID: pid_t?, ownPID: pid_t) {
+        guard let frontmostPID, frontmostPID != ownPID else {
+            targetPID = nil
+            return
+        }
+        targetPID = frontmostPID
     }
 
     var canPasteAutomatically: Bool { PermissionStatusService.canPostKeyboardEvents }
-
-    func pasteIntoCapturedTarget() {
-        if let targetPID, let app = NSRunningApplication(processIdentifier: targetPID) {
-            app.activate(options: [])
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-            _ = PasteSimulation.simulatePaste()
-        }
+    var hasCapturedTarget: Bool {
+        guard let targetPID,
+              let app = NSRunningApplication(processIdentifier: targetPID)
+        else { return false }
+        return !app.isTerminated
     }
+
+    func pasteIntoCapturedTarget() async -> PasteAttemptResult {
+        guard PermissionStatusService.canPostKeyboardEvents else { return .permissionDenied }
+        guard let targetPID,
+              let app = NSRunningApplication(processIdentifier: targetPID),
+              !app.isTerminated
+        else { return .targetUnavailable }
+
+        guard app.activate(options: []) else { return .targetActivationFailed }
+        for _ in 0..<20 {
+            if NSWorkspace.shared.frontmostApplication?.processIdentifier == targetPID {
+                return PasteSimulation.simulatePaste() ? .success : .eventCreationFailed
+            }
+            try? await Task.sleep(nanoseconds: 25_000_000)
+        }
+        return .targetActivationFailed
+    }
+}
+
+enum PasteAttemptResult: Equatable {
+    case success
+    case permissionDenied
+    case targetUnavailable
+    case targetActivationFailed
+    case eventCreationFailed
 }
