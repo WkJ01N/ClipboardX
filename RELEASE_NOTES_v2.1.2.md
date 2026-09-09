@@ -33,7 +33,7 @@
 
 ## 🔐 SHA-256
 
-- `ClipboardX.pkg`: `e64a35d95742ac53ca588a819c50b539cea660eb42cc6543ccdef3f50c07351f`
-- `ClipboardX.zip`: `a781fa248c45195832f7449cd65489f993ad28f22dbefd58a048e64294b50bf0`
+- `ClipboardX.pkg`: `a4d8739463f9c0f450173ea3e6ac25124c92da2dfba362d7c4fe004f862996f9`
+- `ClipboardX.zip`: `7b161912850c23163e02e9156ab7f7e3533693d7c5dbee7563fac168b9c52bb6`
 
 > 应用和安装包尚未经过 Apple 公证。首次运行时请右键选择“打开”，或在“系统设置 → 隐私与安全性”中点击“仍要打开”；无需全局关闭 Gatekeeper。

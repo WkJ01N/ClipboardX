@@ -11,11 +11,16 @@ import SwiftUI
 
 enum SourceFilterMenuLayout {
     static let maximumLabelWidth: CGFloat = 150
+    static let controlChromeWidth: CGFloat = 34
 
     static func labelWidth(for title: String, isAllSources: Bool) -> CGFloat {
         let font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
         let measuredWidth = ceil((title as NSString).size(withAttributes: [.font: font]).width)
         return isAllSources ? measuredWidth : min(measuredWidth, maximumLabelWidth)
+    }
+
+    static func controlWidth(for title: String, isAllSources: Bool) -> CGFloat {
+        labelWidth(for: title, isAllSources: isAllSources) + controlChromeWidth
     }
 }
 
@@ -355,6 +360,10 @@ struct HistoryListView: View {
                 .truncationMode(.tail)
                 .frame(width: labelWidth, alignment: .leading)
         }
+        .frame(width: SourceFilterMenuLayout.controlWidth(
+            for: selectedSourceName,
+            isAllSources: isAllSources
+        ))
         .accessibilityIdentifier("source-filter-menu")
         .accessibilityLabel(selectedSourceName)
     }

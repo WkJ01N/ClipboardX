@@ -15,6 +15,10 @@ final class ClipboardXCoreTests: XCTestCase {
         XCTAssertLessThan(allSourcesWidth, SourceFilterMenuLayout.maximumLabelWidth)
         XCTAssertLessThan(shortApplicationWidth, longApplicationWidth)
         XCTAssertEqual(longApplicationWidth, SourceFilterMenuLayout.maximumLabelWidth)
+        XCTAssertEqual(
+            SourceFilterMenuLayout.controlWidth(for: "全部来源", isAllSources: true),
+            allSourcesWidth + SourceFilterMenuLayout.controlChromeWidth
+        )
     }
 
     func testAutomaticPasteUsesAccessibilityTrustWithoutCGEventPreflight() {
