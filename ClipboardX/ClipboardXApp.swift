@@ -98,7 +98,9 @@ struct ClipboardXApp: App {
                 .environment(\.locale, appLocale)
         }
         .defaultLaunchBehavior(
-            ProcessInfo.processInfo.arguments.contains("-ui-testing-animation") ? .presented : .suppressed
+            ProcessInfo.processInfo.arguments.contains("-ui-testing-animation")
+                || ProcessInfo.processInfo.arguments.contains("-ui-testing-source-filter")
+                ? .presented : .suppressed
         )
 #endif
     }
@@ -195,6 +197,9 @@ private final class ClipboardAppState: ObservableObject {
             if ProcessInfo.processInfo.arguments.contains("-ui-testing-animation") {
                 Self.seedAnimationFixtures(in: modelContainer.mainContext)
             }
+            if ProcessInfo.processInfo.arguments.contains("-ui-testing-source-filter") {
+                Self.seedSourceFilterFixtures(in: modelContainer.mainContext)
+            }
             return
         }
 
@@ -225,6 +230,36 @@ private final class ClipboardAppState: ObservableObject {
             try context.save()
         } catch {
             preconditionFailure("Unable to save UI test fixtures: \(error)")
+        }
+    }
+
+    private static func seedSourceFilterFixtures(in context: ModelContext) {
+        let fixtures: [(UUID, String, String, String)] = [
+            (
+                UUID(uuidString: "00000000-0000-0000-0000-000000000101")!,
+                "Short source fixture",
+                "com.example.short",
+                "Xcode"
+            ),
+            (
+                UUID(uuidString: "00000000-0000-0000-0000-000000000102")!,
+                "Long source fixture",
+                "com.example.long",
+                "An Extremely Long Application Name Used for Source Width Testing"
+            )
+        ]
+        for (id, content, bundleID, appName) in fixtures {
+            context.insert(ClipboardItem(
+                id: id,
+                content: content,
+                sourceBundleIdentifier: bundleID,
+                sourceAppName: appName
+            ))
+        }
+        do {
+            try context.save()
+        } catch {
+            preconditionFailure("Unable to save source-filter UI test fixtures: \(error)")
         }
     }
 

@@ -9,6 +9,16 @@ import AppKit
 import SwiftData
 import SwiftUI
 
+enum SourceFilterMenuLayout {
+    static let maximumLabelWidth: CGFloat = 150
+
+    static func labelWidth(for title: String, isAllSources: Bool) -> CGFloat {
+        let font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        let measuredWidth = ceil((title as NSString).size(withAttributes: [.font: font]).width)
+        return isAllSources ? measuredWidth : min(measuredWidth, maximumLabelWidth)
+    }
+}
+
 /// 剪贴板历史主列表视图。
 ///
 /// 负责组合搜索、排序、键盘导览、快速预览、快捷激活、置顶动画与批量清理等交互。
@@ -302,6 +312,53 @@ struct HistoryListView: View {
         }.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
+    private var selectedSourceName: String {
+        guard let selectedSourceBundleID else { return String(localized: "全部来源") }
+        return availableSources.first(where: { $0.id == selectedSourceBundleID })?.name
+            ?? selectedSourceBundleID
+    }
+
+    private var sourceFilterMenu: some View {
+        let isAllSources = selectedSourceBundleID == nil
+        let labelWidth = SourceFilterMenuLayout.labelWidth(
+            for: selectedSourceName,
+            isAllSources: isAllSources
+        )
+
+        return Menu {
+            Button {
+                selectedSourceBundleID = nil
+            } label: {
+                if isAllSources {
+                    Label("全部来源", systemImage: "checkmark")
+                } else {
+                    Text("全部来源")
+                }
+            }
+
+            Divider()
+
+            ForEach(availableSources, id: \.id) { source in
+                Button {
+                    selectedSourceBundleID = source.id
+                } label: {
+                    if selectedSourceBundleID == source.id {
+                        Label(source.name, systemImage: "checkmark")
+                    } else {
+                        Text(source.name)
+                    }
+                }
+            }
+        } label: {
+            Text(selectedSourceName)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(width: labelWidth, alignment: .leading)
+        }
+        .accessibilityIdentifier("source-filter-menu")
+        .accessibilityLabel(selectedSourceName)
+    }
+
     private var filterBar: some View {
         HStack(spacing: 6) {
             Picker("类型", selection: $selectedKind) {
@@ -310,12 +367,7 @@ struct HistoryListView: View {
                 Text("图片").tag(ClipboardItemKind?.some(.image))
                 Text("文件").tag(ClipboardItemKind?.some(.file))
             }
-            Picker("来源", selection: $selectedSourceBundleID) {
-                Text("全部来源").tag(String?.none)
-                ForEach(availableSources, id: \.id) { source in
-                    Text(source.name).tag(String?.some(source.id))
-                }
-            }
+            sourceFilterMenu
             if selectedKind != nil || selectedSourceBundleID != nil {
                 Button {
                     selectedKind = nil

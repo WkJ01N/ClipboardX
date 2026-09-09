@@ -4,6 +4,19 @@ import XCTest
 @testable import ClipboardX
 
 final class ClipboardXCoreTests: XCTestCase {
+    func testSourceFilterLabelUsesDefaultTitleWidthAndCapsLongApplications() {
+        let allSourcesWidth = SourceFilterMenuLayout.labelWidth(for: "全部来源", isAllSources: true)
+        let shortApplicationWidth = SourceFilterMenuLayout.labelWidth(for: "Xcode", isAllSources: false)
+        let longApplicationWidth = SourceFilterMenuLayout.labelWidth(
+            for: "An Extremely Long Application Name Used for Source Width Testing",
+            isAllSources: false
+        )
+
+        XCTAssertLessThan(allSourcesWidth, SourceFilterMenuLayout.maximumLabelWidth)
+        XCTAssertLessThan(shortApplicationWidth, longApplicationWidth)
+        XCTAssertEqual(longApplicationWidth, SourceFilterMenuLayout.maximumLabelWidth)
+    }
+
     func testAutomaticPasteUsesAccessibilityTrustWithoutCGEventPreflight() {
         XCTAssertTrue(PermissionStatusService.canPostKeyboardEvents(accessibilityTrusted: true))
         XCTAssertFalse(PermissionStatusService.canPostKeyboardEvents(accessibilityTrusted: false))

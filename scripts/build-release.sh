@@ -41,7 +41,7 @@ EXECUTABLE_PATH="$APP_PATH/Contents/MacOS/ClipboardX"
 test -d "$APP_PATH"
 test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Contents/Info.plist")" = 'com.wkj01n.ClipboardX'
 test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Contents/Info.plist")" = '2.1.2'
-test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Contents/Info.plist")" = '213'
+test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Contents/Info.plist")" = '214'
 
 ARCHITECTURES="$(lipo -archs "$EXECUTABLE_PATH")"
 [[ "$ARCHITECTURES" == *arm64* && "$ARCHITECTURES" == *x86_64* ]]
@@ -103,7 +103,7 @@ PKG_APP_PATH="$ARCHIVE_CHECK_ROOT/pkg/Payload/Applications/ClipboardX.app"
 codesign --verify --deep --strict "$PKG_APP_PATH"
 test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PKG_APP_PATH/Contents/Info.plist")" = 'com.wkj01n.ClipboardX'
 test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PKG_APP_PATH/Contents/Info.plist")" = '2.1.2'
-test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PKG_APP_PATH/Contents/Info.plist")" = '213'
+test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PKG_APP_PATH/Contents/Info.plist")" = '214'
 
 pushd "$DIST_DIR" >/dev/null
 shasum -a 256 ClipboardX.pkg ClipboardX.zip > SHA256SUMS.txt

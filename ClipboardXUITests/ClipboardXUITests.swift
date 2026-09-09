@@ -31,6 +31,45 @@ final class ClipboardXUITests: XCTestCase {
         XCTAssertNotEqual(app.state, .notRunning)
     }
 
+    func testSourceFilterWidthTracksOnlyTheCurrentSelection() {
+        let longApplicationName = "An Extremely Long Application Name Used for Source Width Testing"
+        let app = XCUIApplication()
+        app.launchArguments += ["-ui-testing", "-ui-testing-source-filter", "-favoritesEnabled", "NO"]
+        app.launch()
+
+        let sourceMenu = app.descendants(matching: .any)["source-filter-menu"]
+        XCTAssertTrue(sourceMenu.waitForExistence(timeout: 5))
+        let defaultWidth = sourceMenu.frame.width
+        XCTAssertLessThan(defaultWidth, 120)
+
+        sourceMenu.click()
+        let longSourceItem = app.menuItems[longApplicationName]
+        XCTAssertTrue(longSourceItem.waitForExistence(timeout: 2))
+        longSourceItem.click()
+
+        let selectedLongSource = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in
+                sourceMenu.exists && sourceMenu.frame.width > defaultWidth
+                    && sourceMenu.frame.width <= 200
+            },
+            object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [selectedLongSource], timeout: 3), .completed)
+
+        sourceMenu.click()
+        let allSourcesItem = app.menuItems["全部来源"]
+        XCTAssertTrue(allSourcesItem.waitForExistence(timeout: 2))
+        allSourcesItem.click()
+
+        let restoredDefaultWidth = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in
+                sourceMenu.exists && abs(sourceMenu.frame.width - defaultWidth) <= 1
+            },
+            object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [restoredDefaultWidth], timeout: 3), .completed)
+    }
+
     private func assertSelectedCardMovesToTop(animationStyle: String) {
         let app = XCUIApplication()
         app.launchArguments += [
