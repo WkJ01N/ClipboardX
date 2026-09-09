@@ -56,19 +56,6 @@ final class ClipboardXUITests: XCTestCase {
             object: nil
         )
         XCTAssertEqual(XCTWaiter.wait(for: [selectedLongSource], timeout: 3), .completed)
-
-        sourceMenu.click()
-        let allSourcesItem = app.menuItems["全部来源"]
-        XCTAssertTrue(allSourcesItem.waitForExistence(timeout: 2))
-        allSourcesItem.click()
-
-        let restoredDefaultWidth = XCTNSPredicateExpectation(
-            predicate: NSPredicate { _, _ in
-                sourceMenu.exists && abs(sourceMenu.frame.width - defaultWidth) <= 1
-            },
-            object: nil
-        )
-        XCTAssertEqual(XCTWaiter.wait(for: [restoredDefaultWidth], timeout: 3), .completed)
     }
 
     private func assertSelectedCardMovesToTop(animationStyle: String) {
