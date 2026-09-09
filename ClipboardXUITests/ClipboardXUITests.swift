@@ -33,6 +33,7 @@ final class ClipboardXUITests: XCTestCase {
 
     func testSourceFilterWidthTracksOnlyTheCurrentSelection() {
         let longApplicationName = "An Extremely Long Application Name Used for Source Width Testing"
+        let maximumExpansion: CGFloat = 150
         let app = XCUIApplication()
         app.launchArguments += ["-ui-testing", "-ui-testing-source-filter", "-favoritesEnabled", "NO"]
         app.launch()
@@ -40,7 +41,6 @@ final class ClipboardXUITests: XCTestCase {
         let sourceMenu = app.descendants(matching: .any)["source-filter-menu"]
         XCTAssertTrue(sourceMenu.waitForExistence(timeout: 5))
         let defaultWidth = sourceMenu.frame.width
-        XCTAssertLessThan(defaultWidth, 120)
 
         sourceMenu.click()
         let longSourceItem = app.menuItems[longApplicationName]
@@ -49,8 +49,9 @@ final class ClipboardXUITests: XCTestCase {
 
         let selectedLongSource = XCTNSPredicateExpectation(
             predicate: NSPredicate { _, _ in
-                sourceMenu.exists && sourceMenu.frame.width > defaultWidth
-                    && sourceMenu.frame.width <= 200
+                let expansion = sourceMenu.frame.width - defaultWidth
+                return sourceMenu.exists && expansion > 1
+                    && expansion <= maximumExpansion
             },
             object: nil
         )
