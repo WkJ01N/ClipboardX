@@ -43,6 +43,8 @@ struct SettingsView: View {
     @AppStorage("blacklistedBundleIDs") private var blacklistedBundleIDs: String = ""
     @AppStorage("spaceKeyQuickLookEnabled") private var spaceKeyQuickLookEnabled = true
     @AppStorage("mousePreviewLongPressDuration") private var mousePreviewLongPressDuration = 0.5
+    @AppStorage("mousePreviewLongPressEnabled") private var mousePreviewLongPressEnabled = true
+    @AppStorage("forceClickPreviewEnabled") private var forceClickPreviewEnabled = false
     @AppStorage("mousePreviewPersistsAfterRelease") private var mousePreviewPersistsAfterRelease = true
     @AppStorage("popupAtCaret") private var popupAtCaret = false
     @AppStorage("isMonitoringPaused") private var isMonitoringPaused = false
@@ -583,17 +585,22 @@ struct SettingsView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("鼠标长按预览时长: \(String(format: "%.1f", mousePreviewLongPressDuration)) s")
-                    Slider(
-                        value: Binding(
-                            get: { mousePreviewLongPressDuration },
-                            set: { mousePreviewLongPressDuration = max(0.3, min(2.0, $0)) }
-                        ),
-                        in: 0.3...2.0,
-                        step: 0.1
-                    )
+                    Toggle("鼠标长按预览", isOn: $mousePreviewLongPressEnabled)
+                    if mousePreviewLongPressEnabled {
+                        Text("鼠标长按预览时长: \(String(format: "%.1f", mousePreviewLongPressDuration)) s")
+                        Slider(
+                            value: Binding(
+                                get: { mousePreviewLongPressDuration },
+                                set: { mousePreviewLongPressDuration = max(0.3, min(2.0, $0)) }
+                            ),
+                            in: 0.3...2.0,
+                            step: 0.1
+                        )
+                    }
+                    Toggle("触摸板重按预览", isOn: $forceClickPreviewEnabled)
                     Toggle("松开鼠标后继续显示预览", isOn: $mousePreviewPersistsAfterRelease)
-                    Text("长按记录卡片可快速预览；关闭此选项后，松开鼠标即关闭预览。")
+                        .disabled(!mousePreviewLongPressEnabled && !forceClickPreviewEnabled)
+                    Text("长按或重按记录卡片可快速预览；关闭此选项后，松开即关闭预览。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

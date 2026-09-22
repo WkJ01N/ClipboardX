@@ -9,7 +9,7 @@ A native, local-first clipboard manager for macOS 15 and later, built with Swift
 - Capture, search, and preview text, common image formats, and multi-file clipboard entries.
 - Filter by content type or source app, with source and missing-file indicators.
 - Open via a global shortcut, modifier double-tap, or key long-press; navigate by keyboard and Quick Look.
-- Press and hold a history, favorite, or typewriter card to preview it; configure the delay and release behavior in Interaction settings.
+- Press and hold or Force Click a history, favorite, or typewriter card to preview it; configure each gesture and the release behavior in Interaction settings.
 - Press `Enter` to paste or `Shift+Enter` to paste plain text. Without Accessibility access, ClipboardX safely falls back to copy-only.
 - Sensitive text is encrypted at rest using AES-GCM with a Keychain-managed key and expires according to your retention setting.
 - Image payloads live beside the database in `Payloads`, keeping history queries lightweight.

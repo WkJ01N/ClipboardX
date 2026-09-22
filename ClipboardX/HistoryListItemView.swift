@@ -49,6 +49,8 @@ struct HistoryListItemView: View {
     let onPastePlainText: () -> Void
     let onPersistenceError: (String) -> Void
     @AppStorage("mousePreviewLongPressDuration") private var mousePreviewLongPressDuration = 0.5
+    @AppStorage("mousePreviewLongPressEnabled") private var mousePreviewLongPressEnabled = true
+    @AppStorage("forceClickPreviewEnabled") private var forceClickPreviewEnabled = false
 
     /// 鼠标是否悬浮在当前卡片上。
     @State private var isHovering = false
@@ -167,12 +169,14 @@ struct HistoryListItemView: View {
                 isPressing = true
                 didTriggerLongPress = false
                 isPressCancelled = false
-                let duration = max(0.3, min(2.0, mousePreviewLongPressDuration))
-                pressTask = Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
-                    guard !Task.isCancelled, isPressing, !isPressCancelled else { return }
-                    didTriggerLongPress = true
-                    onPreview()
+                if mousePreviewLongPressEnabled {
+                    let duration = max(0.3, min(2.0, mousePreviewLongPressDuration))
+                    pressTask = Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+                        guard !Task.isCancelled, isPressing, !isPressCancelled, !didTriggerLongPress else { return }
+                        didTriggerLongPress = true
+                        onPreview()
+                    }
                 }
             }
             if hypot(value.translation.width, value.translation.height) > 10 {
@@ -191,6 +195,14 @@ struct HistoryListItemView: View {
                 onActivate()
             }
         }
+    }
+
+    private func triggerForceClickPreview() {
+        guard forceClickPreviewEnabled, isPressing, !isPressCancelled, !didTriggerLongPress else { return }
+        pressTask?.cancel()
+        pressTask = nil
+        didTriggerLongPress = true
+        onPreview()
     }
 
     var body: some View {
@@ -299,7 +311,17 @@ struct HistoryListItemView: View {
             .animation(.easeOut(duration: 0.15), value: isSelected)
         }
         .buttonStyle(.plain)
+        .background {
+            ForceClickPreviewMonitor(isEnabled: forceClickPreviewEnabled) {
+                triggerForceClickPreview()
+            }
+        }
         .highPriorityGesture(cardMouseGesture)
+        .onChange(of: mousePreviewLongPressEnabled) {
+            guard !mousePreviewLongPressEnabled else { return }
+            pressTask?.cancel()
+            pressTask = nil
+        }
         .onChange(of: pressCancellationToken) {
             isPressCancelled = true
             pressTask?.cancel()
@@ -461,6 +483,91 @@ struct HistoryListItemView: View {
             modelContext.rollback()
             restore()
             onPersistenceError(String(localized: "无法保存记录变更：\(error.localizedDescription)"))
+        }
+    }
+}
+
+/// Observes the second pressure stage without taking mouse events away from the SwiftUI button.
+/// The backing view is a background for a single card, so window coordinates can be
+/// checked before forwarding a Force Click to that card.
+private struct ForceClickPreviewMonitor: NSViewRepresentable {
+    let isEnabled: Bool
+    let onForceClick: () -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Context) -> TrackingView {
+        let view = TrackingView()
+        context.coordinator.view = view
+        context.coordinator.update(isEnabled: isEnabled, onForceClick: onForceClick)
+        return view
+    }
+
+    func updateNSView(_ view: TrackingView, context: Context) {
+        context.coordinator.view = view
+        context.coordinator.update(isEnabled: isEnabled, onForceClick: onForceClick)
+    }
+
+    static func dismantleNSView(_ view: TrackingView, coordinator: Coordinator) {
+        coordinator.stop()
+    }
+
+    final class TrackingView: NSView {
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    }
+
+    @MainActor final class Coordinator {
+        weak var view: TrackingView?
+        private var monitor: Any?
+        private var isEnabled = false
+        private var isTrackingPress = false
+        private var didTrigger = false
+        private var onForceClick: () -> Void = {}
+
+        func update(isEnabled: Bool, onForceClick: @escaping () -> Void) {
+            self.onForceClick = onForceClick
+            guard self.isEnabled != isEnabled else { return }
+            self.isEnabled = isEnabled
+            if isEnabled {
+                monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp, .pressure]) { [weak self] event in
+                    self?.handle(event)
+                    return event
+                }
+            } else {
+                stop()
+            }
+        }
+
+        func stop() {
+            if let monitor { NSEvent.removeMonitor(monitor) }
+            monitor = nil
+            isTrackingPress = false
+            didTrigger = false
+            isEnabled = false
+        }
+
+        private func contains(_ event: NSEvent) -> Bool {
+            guard let view, event.window === view.window else { return false }
+            return view.bounds.contains(view.convert(event.locationInWindow, from: nil))
+        }
+
+        private func handle(_ event: NSEvent) {
+            switch event.type {
+            case .leftMouseDown:
+                isTrackingPress = contains(event)
+                didTrigger = false
+                if isTrackingPress {
+                    NSPressureConfiguration(pressureBehavior: .primaryDeepClick).set()
+                }
+            case .pressure:
+                guard isTrackingPress, !didTrigger, event.stage >= 2, contains(event) else { return }
+                didTrigger = true
+                onForceClick()
+            case .leftMouseUp:
+                isTrackingPress = false
+            default:
+                break
+            }
         }
     }
 }

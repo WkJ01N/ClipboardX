@@ -117,6 +117,32 @@ final class ClipboardXUITests: XCTestCase {
         XCTAssertGreaterThan(target.frame.minY, first.frame.minY)
     }
 
+    func testHoldDoesNotPreviewWhenOnlyForceClickIsEnabled() {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-ui-testing", "-ui-testing-animation",
+            "-favoritesEnabled", "NO",
+            "-displayStyle", "list",
+            "-bringToTopOnUse", "YES",
+            "-mousePreviewLongPressEnabled", "NO",
+            "-forceClickPreviewEnabled", "YES"
+        ]
+        app.launch()
+
+        let first = app.buttons["history-card-00000000-0000-0000-0000-000000000001"]
+        let target = app.buttons["history-card-00000000-0000-0000-0000-000000000004"]
+        XCTAssertTrue(target.waitForExistence(timeout: 5))
+        target.press(forDuration: 0.7)
+        XCTAssertFalse(app.descendants(matching: .any)["quick-look-preview"].exists)
+        let movedAfterRelease = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in
+                target.exists && first.exists && target.frame.minY < first.frame.minY
+            },
+            object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [movedAfterRelease], timeout: 3), .completed)
+    }
+
     func testDraggingAwayBeforeDelayCancelsPreviewAndActivation() {
         let app = XCUIApplication()
         app.launchArguments += [
