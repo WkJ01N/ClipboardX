@@ -203,6 +203,7 @@ final class PanelManager {
 
     /// 隐藏面板并移除外部点击监测，防止监听器泄漏。
     func hidePanel() {
+        NotificationCenter.default.post(name: .panelDidHideNotification, object: nil)
         PasteCoordinator.shared.invalidateSession()
         stopOutsideClickMonitoring()
         animationGeneration &+= 1
@@ -231,6 +232,7 @@ final class PanelManager {
     /// 粘贴链路需要先同步释放 key window，再将焦点交还目标应用。
     /// 此处不执行淡出，也不销毁刚刚捕获的目标会话。
     private func hidePanelForPaste() {
+        NotificationCenter.default.post(name: .panelDidHideNotification, object: nil)
         stopOutsideClickMonitoring()
         animationGeneration &+= 1
         panel.orderOut(nil)

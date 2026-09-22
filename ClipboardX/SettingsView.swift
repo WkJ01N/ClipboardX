@@ -42,6 +42,8 @@ struct SettingsView: View {
     @AppStorage("confirmBeforeClear") private var confirmBeforeClear = true
     @AppStorage("blacklistedBundleIDs") private var blacklistedBundleIDs: String = ""
     @AppStorage("spaceKeyQuickLookEnabled") private var spaceKeyQuickLookEnabled = true
+    @AppStorage("mousePreviewLongPressDuration") private var mousePreviewLongPressDuration = 0.5
+    @AppStorage("mousePreviewPersistsAfterRelease") private var mousePreviewPersistsAfterRelease = true
     @AppStorage("popupAtCaret") private var popupAtCaret = false
     @AppStorage("isMonitoringPaused") private var isMonitoringPaused = false
     @AppStorage("showPanelPauseControl") private var showPanelPauseControl = true
@@ -576,6 +578,22 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Toggle("空格键快速预览", isOn: $spaceKeyQuickLookEnabled)
                     Text("开启后，空格键用于预览当前键盘选中项；关闭后，空格键将直接触发该项粘贴。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("鼠标长按预览时长: \(String(format: "%.1f", mousePreviewLongPressDuration)) s")
+                    Slider(
+                        value: Binding(
+                            get: { mousePreviewLongPressDuration },
+                            set: { mousePreviewLongPressDuration = max(0.3, min(2.0, $0)) }
+                        ),
+                        in: 0.3...2.0,
+                        step: 0.1
+                    )
+                    Toggle("松开鼠标后继续显示预览", isOn: $mousePreviewPersistsAfterRelease)
+                    Text("长按记录卡片可快速预览；关闭此选项后，松开鼠标即关闭预览。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

@@ -58,6 +58,8 @@ struct QuickLookPreview: View {
             }
             .onTapGesture { }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("quick-look-preview")
         .task(id: item.id) {
             guard item.itemType == "image",
                   let data = ClipboardContentResolver.imageData(for: item)

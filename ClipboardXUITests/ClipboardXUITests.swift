@@ -58,6 +58,94 @@ final class ClipboardXUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [selectedLongSource], timeout: 3), .completed)
     }
 
+    func testMouseLongPressOpensPreviewWithoutActivatingCard() {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-ui-testing", "-ui-testing-animation",
+            "-favoritesEnabled", "NO",
+            "-displayStyle", "list",
+            "-bringToTopOnUse", "YES",
+            "-mousePreviewLongPressDuration", "0.3",
+            "-mousePreviewPersistsAfterRelease", "YES"
+        ]
+        app.launch()
+
+        let first = app.buttons["history-card-00000000-0000-0000-0000-000000000001"]
+        let target = app.buttons["history-card-00000000-0000-0000-0000-000000000004"]
+        XCTAssertTrue(first.waitForExistence(timeout: 5))
+        XCTAssertTrue(target.waitForExistence(timeout: 5))
+
+        target.press(forDuration: 0.6)
+
+        XCTAssertTrue(app.descendants(matching: .any)["quick-look-preview"].waitForExistence(timeout: 3))
+        XCTAssertGreaterThan(target.frame.minY, first.frame.minY, "Long press must not activate or reorder the card")
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertFalse(app.descendants(matching: .any)["quick-look-preview"].exists)
+
+        let cardAfterPreview = app.buttons["history-card-00000000-0000-0000-0000-000000000004"]
+        let cardReady = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in cardAfterPreview.exists && cardAfterPreview.isHittable },
+            object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [cardReady], timeout: 3), .completed)
+        cardAfterPreview.tap()
+        let movedAfterShortPress = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in
+                cardAfterPreview.exists && first.exists && cardAfterPreview.frame.minY < first.frame.minY
+            },
+            object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [movedAfterShortPress], timeout: 3), .completed)
+    }
+
+    func testMousePreviewClosesOnReleaseWhenConfigured() {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-ui-testing", "-ui-testing-animation",
+            "-favoritesEnabled", "NO",
+            "-displayStyle", "list",
+            "-mousePreviewLongPressDuration", "0.3",
+            "-mousePreviewPersistsAfterRelease", "NO"
+        ]
+        app.launch()
+
+        let first = app.buttons["history-card-00000000-0000-0000-0000-000000000001"]
+        let target = app.buttons["history-card-00000000-0000-0000-0000-000000000004"]
+        XCTAssertTrue(target.waitForExistence(timeout: 5))
+        target.press(forDuration: 0.6)
+        XCTAssertFalse(app.descendants(matching: .any)["quick-look-preview"].exists)
+        XCTAssertGreaterThan(target.frame.minY, first.frame.minY)
+    }
+
+    func testDraggingAwayBeforeDelayCancelsPreviewAndActivation() {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-ui-testing", "-ui-testing-animation",
+            "-favoritesEnabled", "NO",
+            "-mousePreviewLongPressDuration", "0.5"
+        ]
+        app.launch()
+
+        let first = app.buttons["history-card-00000000-0000-0000-0000-000000000001"]
+        let target = app.buttons["history-card-00000000-0000-0000-0000-000000000004"]
+        XCTAssertTrue(target.waitForExistence(timeout: 5))
+        target.press(forDuration: 0.1, thenDragTo: first)
+
+        XCTAssertFalse(app.descendants(matching: .any)["quick-look-preview"].exists)
+        XCTAssertGreaterThan(target.frame.minY, first.frame.minY)
+    }
+
+    func testCardContextMenuStillOpens() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-ui-testing", "-ui-testing-animation", "-favoritesEnabled", "NO"]
+        app.launch()
+
+        let card = app.buttons["history-card-00000000-0000-0000-0000-000000000001"]
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        card.rightClick()
+        XCTAssertTrue(app.menuItems["固定在顶部"].waitForExistence(timeout: 3))
+    }
+
     private func assertSelectedCardMovesToTop(animationStyle: String) {
         let app = XCUIApplication()
         app.launchArguments += [

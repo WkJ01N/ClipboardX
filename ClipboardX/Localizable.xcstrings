@@ -1711,6 +1711,15 @@
           }
         }
       }
+    },
+    "鼠标长按预览时长: %@ s" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Mouse Preview Hold Duration: %@ s" } } }
+    },
+    "松开鼠标后继续显示预览" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Keep Preview Open After Mouse Release" } } }
+    },
+    "长按记录卡片可快速预览；关闭此选项后，松开鼠标即关闭预览。" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Press and hold a card to preview it. Turn this off to close the preview when you release the mouse." } } }
     }
   },
   "version" : "1.2"

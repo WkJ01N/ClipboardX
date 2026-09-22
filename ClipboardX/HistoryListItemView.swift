@@ -37,16 +37,26 @@ struct HistoryListItemView: View {
     let item: ClipboardItem
     /// 固定卡片高度（双列网格模式下用于统一尺寸与点击区域）。
     let fixedHeight: CGFloat?
+    let pressCancellationToken: UInt
+    let isPreviewVisible: Bool
     /// 主激活动作（粘贴并执行后续策略）。
     let onActivate: () -> Void
+    /// 鼠标长按达到阈值时请求预览；短按仍由按钮处理。
+    let onPreview: () -> Void
+    let onPreviewRelease: () -> Void
     /// “仅复制”动作（只写回剪贴板，不触发粘贴链路）。
     let onCopyOnly: () -> Void
     let onPastePlainText: () -> Void
     let onPersistenceError: (String) -> Void
+    @AppStorage("mousePreviewLongPressDuration") private var mousePreviewLongPressDuration = 0.5
 
     /// 鼠标是否悬浮在当前卡片上。
     @State private var isHovering = false
     @State private var thumbnail: NSImage?
+    @State private var didTriggerLongPress = false
+    @State private var isPressCancelled = false
+    @State private var isPressing = false
+    @State private var pressTask: Task<Void, Never>?
 
     /// 卡片背景色：选中 > 悬浮 > 默认。
     private var cardBackground: Color {
@@ -150,8 +160,46 @@ struct HistoryListItemView: View {
         return "\(prefix)\(maskedBody)\(suffix)"
     }
 
+    private var cardMouseGesture: some Gesture {
+        DragGesture(minimumDistance: 0)
+        .onChanged { value in
+            if !isPressing {
+                isPressing = true
+                didTriggerLongPress = false
+                isPressCancelled = false
+                let duration = max(0.3, min(2.0, mousePreviewLongPressDuration))
+                pressTask = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+                    guard !Task.isCancelled, isPressing, !isPressCancelled else { return }
+                    didTriggerLongPress = true
+                    onPreview()
+                }
+            }
+            if hypot(value.translation.width, value.translation.height) > 10 {
+                isPressCancelled = true
+                pressTask?.cancel()
+                pressTask = nil
+            }
+        }
+        .onEnded { _ in
+            pressTask?.cancel()
+            pressTask = nil
+            isPressing = false
+            if didTriggerLongPress {
+                onPreviewRelease()
+            } else if !isPressCancelled {
+                onActivate()
+            }
+        }
+    }
+
     var body: some View {
-        Button(action: onActivate) {
+        Button {
+            // 鼠标由互斥手势处理；按钮动作保留键盘和辅助功能激活。
+            if NSApp.currentEvent?.type == .leftMouseUp { return }
+            guard !didTriggerLongPress else { return }
+            onActivate()
+        } label: {
             HStack(alignment: .top, spacing: 8) {
                 VStack(alignment: .leading, spacing: 5) {
                     if item.itemType == "image" {
@@ -251,6 +299,27 @@ struct HistoryListItemView: View {
             .animation(.easeOut(duration: 0.15), value: isSelected)
         }
         .buttonStyle(.plain)
+        .highPriorityGesture(cardMouseGesture)
+        .onChange(of: pressCancellationToken) {
+            isPressCancelled = true
+            pressTask?.cancel()
+            pressTask = nil
+            if isPressing { didTriggerLongPress = true }
+        }
+        .onChange(of: isPreviewVisible) {
+            guard !isPreviewVisible else { return }
+            pressTask?.cancel()
+            pressTask = nil
+            isPressing = false
+            isPressCancelled = true
+            didTriggerLongPress = false
+        }
+        .onDisappear {
+            isPressCancelled = true
+            pressTask?.cancel()
+            pressTask = nil
+            if isPressing { didTriggerLongPress = true }
+        }
         .accessibilityIdentifier("history-card-\(item.id.uuidString.lowercased())")
         .transition(.opacity)
         .opacity(isFadingOut ? 0 : 1)

@@ -64,6 +64,9 @@ struct HistoryListView: View {
     @State private var keyDownMonitor: Any?
     /// Quick Look 预览中的记录 ID；`nil` 表示未展示预览层。
     @State private var quickLookItemID: UUID?
+    @State private var mouseReleaseMonitor: Any?
+    @State private var globalMouseReleaseMonitor: Any?
+    @State private var pressCancellationToken: UInt = 0
     @State private var pasteStatusMessage: String?
     @State private var selectedKind: ClipboardItemKind?
     @State private var selectedSourceBundleID: String?
@@ -80,6 +83,7 @@ struct HistoryListView: View {
     @AppStorage("floatAnimationResponse") private var floatAnimationResponse = 0.40
     /// 空格键行为：预览或直接粘贴。
     @AppStorage("spaceKeyQuickLookEnabled") private var spaceKeyQuickLookEnabled = true
+    @AppStorage("mousePreviewPersistsAfterRelease") private var mousePreviewPersistsAfterRelease = true
     @AppStorage("isMonitoringPaused") private var isMonitoringPaused = false
     @AppStorage("showPanelPauseControl") private var showPanelPauseControl = true
     @AppStorage("displayStyle") private var displayStyle = DisplayStyle.list.rawValue
@@ -130,7 +134,7 @@ struct HistoryListView: View {
         }
     }
 
-    var body: some View {
+    private var listContent: some View {
         VStack(spacing: 0) {
             if isTypewriterMode {
                 typewriterHintHeader
@@ -159,6 +163,10 @@ struct HistoryListView: View {
                 toolbar
             }
         }
+    }
+
+    private var keyboardContent: some View {
+        listContent
         .frame(width: 320, height: 450)
         .focusable()
         .focused($isListFocused)
@@ -168,6 +176,10 @@ struct HistoryListView: View {
         .onKeyPress(.leftArrow, phases: .down) { _ in moveSelection(.left) }
         .onKeyPress(.rightArrow, phases: .down) { _ in moveSelection(.right) }
         .onKeyPress(.space, phases: .down) { _ in
+            if quickLookItemID != nil {
+                closeQuickLook()
+                return .handled
+            }
             if isTypewriterMode {
                 let id = selectedItemID ?? filteredItems.first?.id
                 guard let id,
@@ -179,19 +191,11 @@ struct HistoryListView: View {
             }
 
             if spaceKeyQuickLookEnabled {
-                if quickLookItemID != nil {
-                    quickLookItemID = nil
-                    return .handled
-                } else if isKeyboardMode, let selected = selectedItemID {
+                if isKeyboardMode, let selected = selectedItemID {
                     quickLookItemID = selected
                     return .handled
                 }
                 return .ignored
-            }
-
-            if quickLookItemID != nil {
-                quickLookItemID = nil
-                return .handled
             }
             guard isKeyboardMode,
                   let selected = selectedItemID,
@@ -206,6 +210,10 @@ struct HistoryListView: View {
         .onKeyPress(.return, phases: .down) { press in
             press.modifiers.contains(.shift) ? handlePlainTextReturnKey() : handleReturnKey()
         }
+    }
+
+    private var lifecycleContent: some View {
+        keyboardContent
         .onAppear {
             if isFromPanel {
                 isListFocused = true
@@ -230,6 +238,8 @@ struct HistoryListView: View {
         }
         .onDisappear {
             cancelReorderAnimation()
+            pressCancellationToken &+= 1
+            closeQuickLook()
             if let keyDownMonitor {
                 NSEvent.removeMonitor(keyDownMonitor)
                 self.keyDownMonitor = nil
@@ -242,32 +252,61 @@ struct HistoryListView: View {
                 isSearchFocused = true
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .panelDidHideNotification)) { _ in
+            if isFromPanel {
+                pressCancellationToken &+= 1
+                closeQuickLook()
+            }
+        }
         .onChange(of: selectedTab) {
             cancelReorderAnimation()
+            pressCancellationToken &+= 1
             selectedItemID = nil
             isKeyboardMode = false
-            quickLookItemID = nil
+            closeQuickLook()
             if let proxy = listScrollProxy {
                 scrollListToTop(proxy: proxy)
             }
         }
         .onChange(of: favoritesEnabled) {
             cancelReorderAnimation()
+            pressCancellationToken &+= 1
             selectedTab = .history
             selectedItemID = nil
             isKeyboardMode = false
-            quickLookItemID = nil
+            closeQuickLook()
             showClearConfirmation = false
             if let proxy = listScrollProxy {
                 scrollListToTop(proxy: proxy)
             }
         }
+        .onChange(of: searchText) {
+            pressCancellationToken &+= 1
+            closeQuickLook()
+        }
+        .onChange(of: selectedKind) {
+            pressCancellationToken &+= 1
+            closeQuickLook()
+        }
+        .onChange(of: selectedSourceBundleID) {
+            pressCancellationToken &+= 1
+            closeQuickLook()
+        }
+        .onChange(of: filteredItems.map(\.id)) {
+            pressCancellationToken &+= 1
+            if let quickLookItemID, !filteredItems.contains(where: { $0.id == quickLookItemID }) {
+                closeQuickLook()
+            }
+        }
+    }
+
+    var body: some View {
+        lifecycleContent
         .overlay {
-            if !isTypewriterMode,
-               let qlID = quickLookItemID,
+            if let qlID = quickLookItemID,
                let item = filteredItems.first(where: { $0.id == qlID }) {
                 QuickLookPreview(item: item, onClose: {
-                    quickLookItemID = nil
+                    closeQuickLook()
                 })
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 .zIndex(100)
@@ -491,8 +530,16 @@ struct HistoryListView: View {
             isFadingOut: reorderPhase.hiddenItemID == item.id,
             item: item,
             fixedHeight: fixedHeight,
+            pressCancellationToken: pressCancellationToken,
+            isPreviewVisible: quickLookItemID == item.id,
             onActivate: {
                 activateItem(item)
+            },
+            onPreview: {
+                openMouseQuickLook(for: item)
+            },
+            onPreviewRelease: {
+                if !mousePreviewPersistsAfterRelease { closeQuickLook() }
             },
             onCopyOnly: {
                 _ = copyToPasteboard(item: item)
@@ -508,6 +555,33 @@ struct HistoryListView: View {
         .tag(item.id)
         .padding(.horizontal, currentDisplayStyle == .grid ? 4 : 10)
         .padding(.vertical, currentDisplayStyle == .grid ? 2 : 3)
+    }
+
+    private func openMouseQuickLook(for item: ClipboardItem) {
+        guard filteredItems.contains(where: { $0.id == item.id }) else { return }
+        closeQuickLook()
+        quickLookItemID = item.id
+        guard !mousePreviewPersistsAfterRelease else { return }
+
+        mouseReleaseMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { event in
+            closeQuickLook()
+            return event
+        }
+        globalMouseReleaseMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { _ in
+            closeQuickLook()
+        }
+    }
+
+    private func closeQuickLook() {
+        quickLookItemID = nil
+        if let mouseReleaseMonitor {
+            NSEvent.removeMonitor(mouseReleaseMonitor)
+            self.mouseReleaseMonitor = nil
+        }
+        if let globalMouseReleaseMonitor {
+            NSEvent.removeMonitor(globalMouseReleaseMonitor)
+            self.globalMouseReleaseMonitor = nil
+        }
     }
 
     /// 将列表滚动到顶部（新内容插入或首次展示时）。
@@ -690,7 +764,7 @@ struct HistoryListView: View {
             return .handled
         }
         if quickLookItemID != nil {
-            quickLookItemID = nil
+            closeQuickLook()
             return .handled
         }
         if !searchText.isEmpty {
@@ -709,7 +783,7 @@ struct HistoryListView: View {
             return .handled
         }
         if quickLookItemID != nil {
-            quickLookItemID = nil
+            closeQuickLook()
         }
         let id = selectedItemID ?? filteredItems.first?.id
         guard let id, let item = filteredItems.first(where: { $0.id == id }) else {

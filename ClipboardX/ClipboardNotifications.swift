@@ -14,6 +14,9 @@ extension Notification.Name {
     /// 粘贴前立即收起面板，但保留本次粘贴会话直到事件投递结束。
     static let hidePanelForPasteNotification = Notification.Name("com.clipboardx.hidePanelForPaste")
 
+    /// 面板开始收起时清理列表中的临时交互状态。
+    static let panelDidHideNotification = Notification.Name("com.clipboardx.panelDidHide")
+
     /// 悬浮窗每次置于前台时请求将焦点放到搜索框。
     static let focusClipboardSearchNotification = Notification.Name("com.clipboardx.focusClipboardSearch")
 }
