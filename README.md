@@ -18,6 +18,8 @@
 
 ## 安装
 
+当前版本为 **v2.1.4（构建 216）**，修复菜单栏图标与其他应用的系统开关错误关联的问题。[查看发布说明](./RELEASE_NOTES_v2.1.4.md)。
+
 从 [Releases](https://github.com/WkJ01N/ClipboardX/releases) 下载 `ClipboardX.pkg` 并完成安装，应用会被安装到 `/Applications/ClipboardX.app`。ZIP 仅作为便携备用包，使用时必须先将其中的应用拖入“应用程序”。
 
 当前安装包尚未签署 Developer ID 或经过 Apple 公证。如果 macOS 提示无法验证开发者，请右键安装包选择“打开”，或前往“系统设置 → 隐私与安全性”点击“仍要打开”。

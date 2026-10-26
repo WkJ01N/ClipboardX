@@ -18,6 +18,8 @@ A native, local-first clipboard manager for macOS 15 and later, built with Swift
 
 ## Install
 
+The current version is **v2.1.4 (build 216)**, which addresses incorrect menu bar visibility associations with other apps. [Release notes](./RELEASE_NOTES_v2.1.4.md).
+
 Download `ClipboardX.pkg` from [Releases](https://github.com/WkJ01N/ClipboardX/releases) and run the installer. It installs ClipboardX at `/Applications/ClipboardX.app`. The ZIP is a portable fallback and its app must be moved to Applications manually.
 
 The package is not signed with Developer ID or notarized. If macOS cannot verify it, Control-click the package and choose Open, or use **System Settings → Privacy & Security → Open Anyway**.

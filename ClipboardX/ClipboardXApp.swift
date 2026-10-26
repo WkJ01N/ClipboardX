@@ -13,19 +13,26 @@ import SwiftData
 import SwiftUI
 
 final class ClipboardXApplicationDelegate: NSObject, NSApplicationDelegate {
+    var startMenuBar: (() -> Void)?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        startMenuBar?()
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 }
 
 @main
 struct ClipboardXApp: App {
     @NSApplicationDelegateAdaptor(ClipboardXApplicationDelegate.self) private var applicationDelegate
-    @StateObject private var appState = ClipboardAppState()
-    @AppStorage("showMenuBarIcon") private var showMenuBarIcon = true
-    @AppStorage("menuBarIconName") private var menuBarIconName = "scissors"
+    @StateObject private var appState: ClipboardAppState
     @AppStorage("appLanguage") private var appLanguage = AppLanguage.system.rawValue
-    @AppStorage("isMonitoringPaused") private var isMonitoringPaused = false
 
     init() {
+        let state = ClipboardAppState()
+        _appState = StateObject(wrappedValue: state)
+        applicationDelegate.startMenuBar = { state.menuBarController.start() }
+
         if KeyboardShortcuts.getShortcut(for: .toggleClipboard) == nil {
             KeyboardShortcuts.setShortcut(
                 KeyboardShortcuts.Shortcut(.v, modifiers: [.control]),
@@ -40,50 +47,6 @@ struct ClipboardXApp: App {
 
     var body: some Scene {
         let appLocale = LanguageManager.locale(for: appLanguage)
-
-        MenuBarExtra("ClipboardX", systemImage: menuBarIconName, isInserted: $showMenuBarIcon) {
-            VStack(alignment: .leading, spacing: 0) {
-                HistoryListView(isFromPanel: false)
-
-                Divider()
-
-                HStack(alignment: .center) {
-                    SettingsLink {
-                        Text("偏好设置...")
-                    }
-                    .keyboardShortcut(",", modifiers: .command)
-                    .simultaneousGesture(TapGesture().onEnded {
-                        NSApp.activate(ignoringOtherApps: true)
-                    })
-
-                    Spacer()
-
-                    Button {
-                        isMonitoringPaused.toggle()
-                    } label: {
-                        if isMonitoringPaused {
-                            HStack(spacing: 4) {
-                                Text("已暂停监听")
-                                Image(systemName: "play.circle")
-                            }
-                        } else {
-                            Image(systemName: "pause.circle")
-                        }
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer()
-
-                    Button("退出应用") {
-                        NSApplication.shared.terminate(nil)
-                    }
-                }
-                .padding(10)
-            }
-            .environment(\.locale, appLocale)
-        }
-        .menuBarExtraStyle(.window)
-        .modelContainer(appState.modelContainer)
 
         Settings {
             SettingsView()
@@ -114,6 +77,7 @@ private final class ClipboardAppState: ObservableObject {
     let panelManager: PanelManager
     let longPressShortcutMonitor: LongPressShortcutMonitor
     let doubleClickMonitor: DoubleClickMonitor
+    let menuBarController: ClipboardMenuBarController
     private var captureSubscription: AnyCancellable?
     private var cleanupTimer: Timer?
     private var sensitiveCleanupTimer: Timer?
@@ -181,6 +145,9 @@ private final class ClipboardAppState: ObservableObject {
             }
         }
         modelContainer = resolvedContainer
+        menuBarController = ClipboardMenuBarController {
+            AnyView(ClipboardMenuBarContent().modelContainer(resolvedContainer))
+        }
 
         clipboardMonitor = ClipboardMonitor()
         panelManager = PanelManager(modelContainer: modelContainer)

@@ -1,6 +1,22 @@
 import XCTest
 
 final class ClipboardXUITests: XCTestCase {
+    func testMenuBarPopoverOpensSettings() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-ui-testing", "-showMenuBarIcon", "YES", "-appLanguage", "zh-Hans"]
+        app.launch()
+
+        let icon = app.statusItems["com.wkj01n.ClipboardX.menuBar"]
+        XCTAssertTrue(icon.waitForExistence(timeout: 5))
+        icon.click()
+        let settingsLink = app.buttons["偏好设置..."]
+        XCTAssertTrue(settingsLink.waitForExistence(timeout: 3))
+        settingsLink.click()
+        let visibilityToggle = app.checkBoxes["在顶部菜单栏显示图标"]
+        XCTAssertTrue(visibilityToggle.waitForExistence(timeout: 3))
+        XCTAssertEqual(visibilityToggle.value as? Int, 1)
+    }
+
     func testApplicationLaunches() {
         let app = XCUIApplication()
         app.launchArguments.append("-ui-testing")
@@ -65,6 +81,8 @@ final class ClipboardXUITests: XCTestCase {
             "-favoritesEnabled", "NO",
             "-displayStyle", "list",
             "-bringToTopOnUse", "YES",
+            "-mousePreviewLongPressEnabled", "YES",
+            "-forceClickPreviewEnabled", "NO",
             "-mousePreviewLongPressDuration", "0.3",
             "-mousePreviewPersistsAfterRelease", "YES"
         ]
@@ -104,6 +122,9 @@ final class ClipboardXUITests: XCTestCase {
             "-ui-testing", "-ui-testing-animation",
             "-favoritesEnabled", "NO",
             "-displayStyle", "list",
+            "-bringToTopOnUse", "YES",
+            "-mousePreviewLongPressEnabled", "YES",
+            "-forceClickPreviewEnabled", "NO",
             "-mousePreviewLongPressDuration", "0.3",
             "-mousePreviewPersistsAfterRelease", "NO"
         ]
@@ -148,6 +169,10 @@ final class ClipboardXUITests: XCTestCase {
         app.launchArguments += [
             "-ui-testing", "-ui-testing-animation",
             "-favoritesEnabled", "NO",
+            "-displayStyle", "list",
+            "-bringToTopOnUse", "YES",
+            "-mousePreviewLongPressEnabled", "YES",
+            "-forceClickPreviewEnabled", "NO",
             "-mousePreviewLongPressDuration", "0.5"
         ]
         app.launch()

@@ -1,9 +1,49 @@
 import CryptoKit
 import SwiftData
+import SwiftUI
 import XCTest
 @testable import ClipboardX
 
 final class ClipboardXCoreTests: XCTestCase {
+    @MainActor
+    func testMenuBarVisibilityUsesItsOwnIdentityAndPreservesSystemHiding() async throws {
+        let suiteName = "com.wkj01n.ClipboardX.tests.menuBar.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        let controller = ClipboardMenuBarController(defaults: defaults, autosaveName: suiteName) {
+            AnyView(EmptyView())
+        }
+        defer {
+            controller.stop()
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+        controller.start()
+        let item = try XCTUnwrap(controller.statusItem)
+        XCTAssertEqual(item.autosaveName, suiteName)
+        XCTAssertTrue(item.isVisible)
+        XCTAssertFalse(item.behavior.contains(.terminationOnRemoval))
+
+        controller.start()
+        XCTAssertTrue(controller.statusItem === item, "Refreshing the app must not create duplicate items")
+        defaults.set(false, forKey: "NSStatusItem VisibleCC Item-0")
+        controller.refreshPreferences()
+        XCTAssertTrue(item.isVisible, "The generic status item identity must not control ClipboardX")
+
+        defaults.set(false, forKey: "showMenuBarIcon")
+        await fulfillment(of: [XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in !item.isVisible }, object: nil
+        )], timeout: 2)
+        defaults.set(true, forKey: "showMenuBarIcon")
+        await fulfillment(of: [XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in item.isVisible }, object: nil
+        )], timeout: 2)
+
+        item.isVisible = false
+        defaults.set("paperclip", forKey: "menuBarIconName")
+        controller.refreshPreferences()
+        XCTAssertFalse(item.isVisible, "Changing the icon must not override the system's visibility choice")
+        XCTAssertTrue(defaults.bool(forKey: "showMenuBarIcon"), "System visibility must not overwrite the in-app preference")
+    }
+
     func testSourceFilterLabelUsesDefaultTitleWidthAndCapsLongApplications() {
         let allSourcesWidth = SourceFilterMenuLayout.labelWidth(for: "全部来源", isAllSources: true)
         let shortApplicationWidth = SourceFilterMenuLayout.labelWidth(for: "Xcode", isAllSources: false)
